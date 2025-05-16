@@ -1,6 +1,7 @@
 import torch
 import torchvision.transforms as transforms
-import numpy as np  # Added import for np.random
+import numpy as np
+
 
 # Standard normalization for ImageNet
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],

@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
 import pandas as pd
-from .helpers import inv_tensor_transform, get_class_name
+from utils.helpers import inv_tensor_transform, get_class_name
 
 
 def plot_accuracy_vs_epsilon(epsilons, accuracies, title='Accuracy vs. Epsilon'):
