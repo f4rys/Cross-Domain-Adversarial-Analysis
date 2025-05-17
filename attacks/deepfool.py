@@ -59,10 +59,10 @@ class DeepFool:
                 img_for_grad = img.clone().detach().requires_grad_(True)
 
                 outputs = self.model(img_for_grad) # Shape [1, num_classes]
-                current_pred = torch.argmax(outputs, dim=1).item()
+                current_pred_label = torch.argmax(outputs, dim=1).item() # Renamed to avoid clash
 
                 # If already misclassified relative to the original prediction, stop.
-                if current_pred != img_initial_pred:
+                if current_pred_label != img_initial_pred:
                     break
 
                 # Optimized Gradient Calculation using Jacobian
@@ -70,60 +70,61 @@ class DeepFool:
                     return self.model(x)[0] # Output shape [num_classes]
 
                 try:
+                    # Jacobian of model_logits (output: num_classes) w.r.t. img_for_grad (input: 1,C,H,W)
+                    # Expected shape: (num_classes, 1, C, H, W)
                     grads_jacobian = F.jacobian(model_logits, img_for_grad, create_graph=False, strict=False)
                 except Exception as e:
                     print(f"Jacobian calculation failed for image {idx} at step {step}: {e}")
                     break # Stop processing this image if Jacobian fails
 
-                # Squeeze the batch dimension potentially added by jacobian: (num_classes, C, H, W)
-                # Handle potential extra dimensions if jacobian behaves differently
-                if grads_jacobian.dim() > 4: # e.g., (1, num_classes, C, H, W)
-                    grads = grads_jacobian.squeeze(dim=0).squeeze(dim=1)
-                elif grads_jacobian.dim() == 4: # (num_classes, C, H, W)
-                     grads = grads_jacobian.squeeze(dim=1) # Should not happen with squeeze(0) above, but safer
+                # Assuming grads_jacobian shape is (num_classes, 1, C, H, W)
+                if grads_jacobian.dim() == 5 and grads_jacobian.shape[1] == 1:
+                    grads = grads_jacobian.squeeze(1) # Shape: (num_classes, C, H, W)
                 else:
-                    print(f"Unexpected Jacobian shape: {grads_jacobian.shape} for image {idx} at step {step}")
+                    # Fallback or error for unexpected shape
+                    # This replaces the more complex if/elif structure previously
+                    print(f"Unexpected Jacobian shape: {grads_jacobian.shape} for image {idx} at step {step}. Expected (num_classes, 1, C, H, W).")
                     break
 
 
-                # Get logit and gradient for the current predicted class (still the initial pred at this stage)
-                f_pred = outputs[0, current_pred].detach().item() # Logit of current (initial) prediction
-                w_pred = grads[current_pred] # Gradient for current (initial) prediction
+                # Get logit and gradient for the current predicted class
+                f_k_all = outputs[0]  # Logits for all classes, Shape [num_classes]
+                
+                f_pred_val = f_k_all[current_pred_label].detach() # Scalar tensor, logit of current prediction
+                w_pred_val = grads[current_pred_label]      # Gradient for current prediction, Shape [C, H, W]
 
-                min_pert_ratio = float('inf')
-                closest_boundary_l = -1
-                closest_w_diff = None # Initialize closest_w_diff
+                # Calculate differences for all k (vectorized)
+                f_diffs = f_k_all.detach() - f_pred_val  # Shape [num_classes]
+                # Unsqueeze w_pred_val to enable broadcasting with grads (w_k_all)
+                w_diffs = grads - w_pred_val.unsqueeze(0) # Shape [num_classes, C, H, W]
 
-                # Find the closest class boundary (minimum perturbation ratio)
-                for k in range(self.num_classes):
-                    if k == current_pred: # Compare against the current prediction
-                        continue
+                # Calculate L2 norm squared for all w_diffs (sum over C, H, W dimensions)
+                # Add small epsilon for numerical stability
+                w_diffs_norm_sq = torch.sum(w_diffs.pow(2), dim=(1, 2, 3)) + 1e-9 # Shape [num_classes]
+                
+                # Avoid division by zero if w_diffs_norm_sq is zero (e.g. if w_diff is zero)
+                # This can happen if grads for a class k are identical to grads for current_pred_label
+                # or if a gradient is zero.
+                # Set pert_ratios to infinity where w_diffs_norm_sq is too small (or zero)
+                # This also handles cases where f_diffs is zero for a class k.
+                pert_ratios = torch.abs(f_diffs) / w_diffs_norm_sq # Shape [num_classes]
 
-                    f_k = outputs[0, k].detach().item() # Logit of other class k
-                    w_k = grads[k] # Gradient for other class k
+                # Mask out the current predicted class by setting its ratio to infinity
+                pert_ratios[current_pred_label] = float('inf')
 
-                    # Difference in logits and gradients
-                    f_diff = f_k - f_pred
-                    w_diff = w_k - w_pred # shape [C, H, W]
+                # Find the minimum perturbation ratio and corresponding class
+                min_pert_ratio, closest_boundary_l = torch.min(pert_ratios, dim=0)
 
-                    # Use sum of squares for squared L2 norm
-                    # Add small epsilon for numerical stability
-                    w_diff_norm_sq = torch.sum(w_diff**2) + 1e-9
-
-                    # Perturbation ratio: abs(f_diff) / ||w_diff||_2^2
-                    pert_ratio_k = abs(f_diff) / w_diff_norm_sq
-
-                    if pert_ratio_k < min_pert_ratio:
-                        min_pert_ratio = pert_ratio_k
-                        closest_boundary_l = k
-                        closest_w_diff = w_diff # Store the w_diff for the closest boundary
-
-                # If no boundary found (e.g., gradients were zero or identical)
-                if closest_boundary_l == -1 or closest_w_diff is None:
-                    print(f"Warning: DeepFool couldn't find a boundary for image {idx} at step {step}.")
+                # If no valid boundary found (e.g., all pert_ratios are inf)
+                if torch.isinf(min_pert_ratio) or closest_boundary_l.item() == current_pred_label:
+                    print(f"Warning: DeepFool couldn't find a valid boundary for image {idx} at step {step}.")
                     break # Stop iterating steps for this image
+                
+                # Get the w_diff for the closest boundary
+                closest_w_diff = w_diffs[closest_boundary_l]
 
                 # Calculate the minimal perturbation vector for this step (L2)
+                # min_pert_ratio is a 0-dim tensor here
                 r_i = min_pert_ratio * closest_w_diff
 
                 # Accumulate perturbation for this image
