@@ -59,9 +59,9 @@ class CW:
             # Max logit of non-target classes
             other = torch.max((1 - one_hot_labels) * outputs - one_hot_labels * 10000, dim=1)[0]
 
-            # CW Loss f(x') = max(0, max_{i!=t}{Z(x')_i} - Z(x')_t + kappa)
-            # We want to maximize 'other' and minimize 'real'
-            f_loss = torch.clamp(other - real + self.kappa, min=0)
+            # CW Loss for untargeted attack: f(x') = max(0, Z(x')_t - max_{i!=t}{Z(x')_i} + kappa)
+            # We want to maximize 'other' and minimize 'real' (or make 'real' smaller than 'other')
+            f_loss = torch.clamp(real - other + self.kappa, min=0)
 
             # L2 distance loss (between original [0,1] and adversarial [0,1])
             l2_loss = torch.sum((adv_images_orig_scale - images_orig_scale).pow(2), dim=(1, 2, 3))
