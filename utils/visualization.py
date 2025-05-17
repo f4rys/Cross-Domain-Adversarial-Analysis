@@ -4,14 +4,19 @@ import pandas as pd
 from utils.helpers import inv_tensor_transform, get_class_name
 
 
-def plot_accuracy_vs_epsilon(epsilons, accuracies, title='Accuracy vs. Epsilon'):
-    """Plots accuracy vs. epsilon."""
+def plot_accuracy_vs_param(param_values, accuracies, param_label, title):
+    """Plots accuracy vs. a specified parameter."""
     plt.figure(figsize=(8, 5))
-    plt.plot(epsilons, accuracies, marker='o')
+    plt.plot(param_values, accuracies, marker='o')
     plt.title(title)
-    plt.xlabel('Epsilon')
+    plt.xlabel(param_label)
     plt.ylabel('Accuracy (%)')
-    plt.xticks(epsilons, rotation=45)
+    # Attempt to use param_values directly for ticks, good for numeric/categorical
+    try:
+        plt.xticks(param_values, rotation=45)
+    except TypeError:
+        # Fallback for non-numeric types if direct use fails, though less ideal
+        plt.xticks(range(len(param_values)), labels=[str(pv) for pv in param_values], rotation=45)
     plt.grid(True)
     plt.show()
 
@@ -63,17 +68,6 @@ def visualize_generic_sweep(num_samples_to_show, param_values, attack_results,
             ax.axis('off')
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.show()
-
-def plot_accuracy_vs_c(c_values, accuracies, title='CW Accuracy vs. C'):
-    """Plots CW accuracy vs. C values."""
-    plt.figure(figsize=(8, 5))
-    plt.plot(c_values, accuracies, marker='o')
-    plt.title(title)
-    plt.xlabel('C Value')
-    plt.ylabel('Accuracy (%)')
-    plt.xticks(c_values)
-    plt.grid(True)
     plt.show()
 
 def visualize_pgd_heatmaps(pgd_results, pgd_epsilons, pgd_alphas, pgd_steps):
@@ -176,17 +170,6 @@ def visualize_comparison_results(num_samples_to_show, results, attacks, imagenet
             col_idx += 1
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.show()
-
-def plot_accuracy_vs_deepfool_param(param_values, accuracies, param_label, title='DeepFool Accuracy vs. Parameter'):
-    """Plots DeepFool accuracy vs. a given parameter (e.g., Steps or Overshoot)."""
-    plt.figure(figsize=(8, 5))
-    plt.plot(param_values, accuracies, marker='o')
-    plt.title(title)
-    plt.xlabel(param_label)
-    plt.ylabel('Accuracy (%)')
-    plt.xticks(param_values) # Assuming param_values are suitable for direct ticking
-    plt.grid(True)
     plt.show()
 
 def visualize_deepfool_heatmaps(deepfool_results, df_steps, df_overshoot):
