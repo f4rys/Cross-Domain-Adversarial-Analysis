@@ -20,56 +20,6 @@ def plot_accuracy_vs_param(param_values, accuracies, param_label, title):
     plt.grid(True)
     plt.show()
 
-def visualize_generic_sweep(num_samples_to_show, param_values, attack_results,
-                            clean_data, imagenet_classes, attack_name,
-                            param_label_in_subplot_title, param_display_name_in_suptitle,
-                            suptitle_extra_info=""):
-    """Helper function to visualize clean and adversarial examples for a parameter sweep."""
-    fig, axs = plt.subplots(num_samples_to_show, len(param_values) + 1, figsize=(18, 3 * num_samples_to_show))
-    full_suptitle = f"{attack_name} Examples vs. {param_display_name_in_suptitle}"
-    if suptitle_extra_info:
-        full_suptitle += f" {suptitle_extra_info}"
-    fig.suptitle(full_suptitle, fontsize=16)
-
-    for i in range(num_samples_to_show):
-        if i >= len(clean_data['images']): 
-            continue
-
-        # Display clean image
-        clean_img_tensor = clean_data['images'][i]
-        clean_pred_idx = clean_data['preds'][i]
-        true_label_idx = clean_data['labels'][i]
-        clean_conf = clean_data['confidences'][i]
-        clean_img_pil = inv_tensor_transform(clean_img_tensor)
-
-        ax = axs[i, 0]
-        ax.imshow(clean_img_pil)
-        title_clean = f"Clean\nPred: {get_class_name(clean_pred_idx, imagenet_classes)} ({clean_conf:.2f})\nTrue: {get_class_name(true_label_idx, imagenet_classes)}"
-        ax.set_title(title_clean, color=("green" if clean_pred_idx == true_label_idx else "red"), fontsize=8)
-        ax.axis('off')
-
-        # Display adversarial images for each parameter value
-        for j, param_val in enumerate(param_values):
-            ax = axs[i, j + 1]
-            if param_val not in attack_results or i >= len(attack_results[param_val]['images']):
-                ax.text(0.5, 0.5, 'N/A', horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
-                ax.set_title(f"{attack_name} ({param_label_in_subplot_title}={param_val})\nPred: N/A", fontsize=8)
-                ax.axis('off')
-                continue
-
-            adv_img_tensor = attack_results[param_val]['images'][i]
-            adv_pred_idx = attack_results[param_val]['preds'][i]
-            adv_conf = attack_results[param_val]['confidences'][i]
-            adv_img_pil = inv_tensor_transform(adv_img_tensor)
-
-            ax.imshow(adv_img_pil)
-            title_adv = f"{attack_name} ({param_label_in_subplot_title}={param_val})\nPred: {get_class_name(adv_pred_idx, imagenet_classes)} ({adv_conf:.2f})"
-            ax.set_title(title_adv, color=("green" if adv_pred_idx == true_label_idx else "red"), fontsize=8)
-            ax.axis('off')
-
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.show()
-
 def visualize_accuracy_heatmap(results_dict, primary_param_values, secondary_param_values, 
                                primary_param_name, secondary_param_name, title_prefix,
                                fixed_params_dict=None):
@@ -135,63 +85,76 @@ def visualize_accuracy_heatmap(results_dict, primary_param_values, secondary_par
 
     plt.show()
 
-def visualize_comparison_results(num_samples_to_show, results, attacks, imagenet_classes):
-    """Visualizes a comparison of clean images vs. images perturbed by different attacks."""
-    # Visualize sample results
-    num_samples_to_show = min(5, results['clean']['total'])
+def visualize_adversarial_grid(num_samples_to_show, clean_data, column_definitions, 
+                               imagenet_classes, figure_suptitle):
+    """
+    Visualizes a grid of images: clean examples in the first column, 
+    and various adversarial examples (defined by column_definitions) in subsequent columns.
 
-    # Adjust figsize if titles become too long
-    fig, axs = plt.subplots(num_samples_to_show, len(attacks) + 1, figsize=(18, 3.5 * num_samples_to_show))
-    fig.suptitle("Clean vs Adversarial Examples (with Confidence)", fontsize=16)
+    Args:
+        num_samples_to_show (int): Max number of samples (rows) to display.
+        clean_data (dict): Dict containing 'images', 'preds', 'labels', 'confidences' for clean data.
+        column_definitions (list): List of dicts, each defining an adversarial column.
+                                   Each dict: {'title_segment': str, 'data_results': dict}
+                                   where 'data_results' has 'images', 'preds', 'confidences'.
+        imagenet_classes (dict): Mapping from class index to class name.
+        figure_suptitle (str): Overall title for the figure.
+    """
+    if not clean_data or not clean_data.get('images') or not clean_data.get('labels'):
+        print("Clean data is missing, empty, or does not contain 'images' or 'labels'. Cannot visualize.")
+        return
+    if num_samples_to_show <= 0:
+        print("num_samples_to_show is non-positive, nothing to display.")
+        return
+    
+    actual_num_samples = min(num_samples_to_show, len(clean_data['images']))
+    if actual_num_samples == 0:
+        print("No clean samples available to show based on num_samples_to_show and available data.")
+        return
 
-    for i in range(num_samples_to_show):
-        # Get clean image and info
-        clean_img_tensor = results['clean']['images'][i]
-        clean_pred_idx = results['clean']['preds'][i]
-        true_label_idx = results['clean']['labels'][i]
-        clean_conf = results['clean']['confidences'][i]
+    num_adv_cols = len(column_definitions)
+    # Ensure axs is always a 2D array using squeeze=False
+    fig, axs = plt.subplots(actual_num_samples, 1 + num_adv_cols, 
+                            figsize=(3.5 * (1 + num_adv_cols), 3.5 * actual_num_samples), 
+                            squeeze=False) 
+    
+    fig.suptitle(figure_suptitle, fontsize=16)
 
-        # Denormalize for display
+    for i in range(actual_num_samples):
+        # Display clean image
+        clean_img_tensor = clean_data['images'][i]
+        clean_pred_idx = clean_data['preds'][i]
+        true_label_idx = clean_data['labels'][i]
+        clean_conf = clean_data['confidences'][i]
         clean_img_pil = inv_tensor_transform(clean_img_tensor)
 
-        # Display clean image
-        ax = axs[i, 0]
-        ax.imshow(clean_img_pil)
-        # Add confidence to title
+        ax_clean = axs[i, 0]
+        ax_clean.imshow(clean_img_pil)
         title_clean = f"Clean\nPred: {get_class_name(clean_pred_idx, imagenet_classes)} ({clean_conf:.2f})\nTrue: {get_class_name(true_label_idx, imagenet_classes)}"
-        ax.set_title(title_clean,
-                        color=("green" if clean_pred_idx == true_label_idx else "red"),
-                        fontsize=9)
-        ax.axis('off')
+        ax_clean.set_title(title_clean, color=("green" if clean_pred_idx == true_label_idx else "red"), fontsize=9)
+        ax_clean.axis('off')
 
-        # Display adversarial images
-        col_idx = 1
-        for attack_key, _ in attacks.items(): # Iterate over keys and values, but only use the key
-            # Check if adv image exists for this index
-            if i < len(results[attack_key]['images']):
-                adv_img_tensor = results[attack_key]['images'][i]
-                adv_pred_idx = results[attack_key]['preds'][i]
-                adv_conf = results[attack_key]['confidences'][i]
-
-                # Denormalize
+        # Display adversarial images for each definition
+        for j, col_def in enumerate(column_definitions):
+            ax_adv = axs[i, j + 1]
+            adv_results = col_def['data_results']
+            
+            # Ensure the sample index is valid for the current adversarial result
+            if adv_results and i < len(adv_results.get('images', [])):
+                adv_img_tensor = adv_results['images'][i]
+                adv_pred_idx = adv_results['preds'][i]
+                adv_conf = adv_results['confidences'][i]
+                # true_label_idx is the same as for the clean image for comparison
+                
                 adv_img_pil = inv_tensor_transform(adv_img_tensor)
-
-                ax = axs[i, col_idx]
-                ax.imshow(adv_img_pil)
-                # Add confidence to title
-                title_adv = f"{attack_key}\nPred: {get_class_name(adv_pred_idx, imagenet_classes)} ({adv_conf:.2f})"
-                ax.set_title(title_adv,
-                                color=("green" if adv_pred_idx == true_label_idx else "red"),
-                                fontsize=9)
-                ax.axis('off')
+                ax_adv.imshow(adv_img_pil)
+                title_adv = f"{col_def['title_segment']}\nPred: {get_class_name(adv_pred_idx, imagenet_classes)} ({adv_conf:.2f})"
+                ax_adv.set_title(title_adv, color=("green" if adv_pred_idx == true_label_idx else "red"), fontsize=9)
             else:
-                # Handle cases where attack might have failed or skipped
-                ax = axs[i, col_idx]
-                ax.text(0.5, 0.5, 'N/A', horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
-                ax.set_title(f"{attack_key}\nPred: N/A", fontsize=9)
-                ax.axis('off')
+                # Handle cases where adversarial data might be missing for this sample or param
+                ax_adv.text(0.5, 0.5, 'N/A', horizontalalignment='center', verticalalignment='center', transform=ax_adv.transAxes)
+                ax_adv.set_title(f"{col_def['title_segment']}\nPred: N/A", fontsize=9)
+            ax_adv.axis('off')
 
-            col_idx += 1
-
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust rect based on suptitle
     plt.show()
