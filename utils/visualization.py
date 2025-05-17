@@ -70,45 +70,69 @@ def visualize_generic_sweep(num_samples_to_show, param_values, attack_results,
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.show()
 
-def visualize_pgd_heatmaps(pgd_results, pgd_epsilons, pgd_alphas, pgd_steps):
-    """Visualizes PGD accuracy heatmaps for different step counts on a single figure."""
-    num_heatmaps = len(pgd_steps)
-    if num_heatmaps == 0:
+def visualize_accuracy_heatmap(results_dict, primary_param_values, secondary_param_values, 
+                               primary_param_name, secondary_param_name, title_prefix,
+                               fixed_params_dict=None):
+    """
+    Visualizes accuracy heatmaps for attacks with two varying parameters, 
+    potentially with other parameters fixed (multi-level heatmaps if fixed_params_dict is used).
+    """
+    if not primary_param_values or not secondary_param_values:
+        print("Primary or secondary parameter values list is empty. Cannot generate heatmap.")
         return
 
-    max_cols = 3
-    num_cols = min(num_heatmaps, max_cols)
-    num_rows = (num_heatmaps + num_cols - 1) // num_cols  # Ceiling division
+    if fixed_params_dict and any(fixed_params_dict.values()):
+        # Determine the parameter to iterate over for creating multiple heatmaps
+        fixed_param_iter_name = list(fixed_params_dict.keys())[0]
+        fixed_param_iter_values = fixed_params_dict[fixed_param_iter_name]
+        num_heatmaps = len(fixed_param_iter_values)
 
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(6 * num_cols, 5 * num_rows), squeeze=False)
-    # squeeze=False ensures axs is always a 2D array
+        max_cols = 3
+        num_cols = min(num_heatmaps, max_cols)
+        num_rows = (num_heatmaps + num_cols - 1) // num_cols
 
-    for idx, steps_val in enumerate(pgd_steps):
-        row = idx // num_cols
-        col = idx % num_cols
-        ax = axs[row, col]
+        fig, axs = plt.subplots(num_rows, num_cols, figsize=(6 * num_cols, 5 * num_rows), squeeze=False)
 
-        heatmap_data = pd.DataFrame(index=pgd_alphas, columns=pgd_epsilons)
-        for params, result in pgd_results.items():
-            eps, alpha, steps = params
-            if steps == steps_val:
-                heatmap_data.loc[alpha, eps] = result['accuracy']
-        
-        heatmap_data = heatmap_data.apply(pd.to_numeric, errors='coerce')
+        for idx, fixed_val in enumerate(fixed_param_iter_values):
+            row = idx // num_cols
+            col = idx % num_cols
+            ax = axs[row, col]
 
-        sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="viridis_r", 
-                    linewidths=.5, cbar_kws={'label': 'Accuracy (%)'}, ax=ax)
-        ax.set_title(f'PGD Accuracy (%) for {steps_val} Steps')
-        ax.set_xlabel('Epsilon')
-        ax.set_ylabel('Alpha')
+            heatmap_data = pd.DataFrame(index=secondary_param_values, columns=primary_param_values)
+            for params_tuple, result_data in results_dict.items():
+                if len(params_tuple) > 2 and params_tuple[2] == fixed_val:
+                    primary_val, secondary_val = params_tuple[0], params_tuple[1]
+                    if primary_val in primary_param_values and secondary_val in secondary_param_values:
+                         heatmap_data.loc[secondary_val, primary_val] = result_data['accuracy']
+            
+            heatmap_data = heatmap_data.apply(pd.to_numeric, errors='coerce').sort_index(axis=0).sort_index(axis=1)
+            sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="viridis_r", 
+                        linewidths=.5, cbar_kws={'label': 'Accuracy (%)'}, ax=ax)
+            ax.set_title(f'{title_prefix} (%) for {fixed_param_iter_name}={fixed_val}')
+            ax.set_xlabel(primary_param_name)
+            ax.set_ylabel(secondary_param_name)
 
-    # Hide any unused subplots
-    for idx in range(num_heatmaps, num_rows * num_cols):
-        row = idx // num_cols
-        col = idx % num_cols
-        fig.delaxes(axs[row, col])
+        for idx in range(num_heatmaps, num_rows * num_cols):
+            fig.delaxes(axs[idx // num_cols, idx % num_cols])
+        plt.tight_layout()
 
-    plt.tight_layout()
+    else: # Single heatmap
+        heatmap_data = pd.DataFrame(index=secondary_param_values, columns=primary_param_values)
+        for params_tuple, result_data in results_dict.items():
+            if len(params_tuple) == 2:
+                primary_val, secondary_val = params_tuple
+                if primary_val in primary_param_values and secondary_val in secondary_param_values:
+                    heatmap_data.loc[secondary_val, primary_val] = result_data['accuracy']
+
+        heatmap_data = heatmap_data.apply(pd.to_numeric, errors='coerce').sort_index(axis=0).sort_index(axis=1)
+        plt.figure(figsize=(6, 5))
+        sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="viridis_r",
+                    linewidths=.5, cbar_kws={'label': 'Accuracy (%)'})
+        plt.title(f'{title_prefix} (%)')
+        plt.xlabel(primary_param_name)
+        plt.ylabel(secondary_param_name)
+        plt.tight_layout()
+
     plt.show()
 
 def visualize_comparison_results(num_samples_to_show, results, attacks, imagenet_classes):
@@ -170,28 +194,4 @@ def visualize_comparison_results(num_samples_to_show, results, attacks, imagenet
             col_idx += 1
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.show()
-
-def visualize_deepfool_heatmaps(deepfool_results, df_steps, df_overshoot):
-    """
-    Visualizes DeepFool accuracy heatmaps for different steps and overshoot values.
-    Rows: overshoot, Columns: steps.
-    """
-    if not df_steps or not df_overshoot:
-        return
-
-    heatmap_data = pd.DataFrame(index=df_overshoot, columns=df_steps)
-    for params, result in deepfool_results.items():
-        steps, overshoot = params
-        heatmap_data.loc[overshoot, steps] = result['accuracy']
-
-    heatmap_data = heatmap_data.apply(pd.to_numeric, errors='coerce')
-
-    plt.figure(figsize=(6, 5))
-    sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="viridis_r",
-                linewidths=.5, cbar_kws={'label': 'Accuracy (%)'})
-    plt.title('DeepFool Accuracy (%)')
-    plt.xlabel('Steps')
-    plt.ylabel('Overshoot')
-    plt.tight_layout()
     plt.show()
