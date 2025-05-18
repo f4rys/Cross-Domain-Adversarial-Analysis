@@ -59,7 +59,7 @@ def visualize_accuracy_heatmap(results_dict, primary_param_values, secondary_par
             # Create a DataFrame of formatted strings for annotations
             annot_data = heatmap_data.map(lambda x: f"{x:.0f}%" if pd.notnull(x) else "")
             sns.heatmap(heatmap_data, annot=annot_data, fmt="", cmap="viridis_r", 
-                        linewidths=.5, cbar_kws={'label': 'Accuracy (%)'}, ax=ax)
+                        linewidths=.5, cbar_kws={'label': 'Accuracy (%)'}, ax=ax, vmin=0, vmax=100)
             ax.set_title(f'{title_prefix} for {fixed_param_iter_name}={fixed_val}')
             ax.set_xlabel(primary_param_name)
             ax.set_ylabel(secondary_param_name)
@@ -81,7 +81,7 @@ def visualize_accuracy_heatmap(results_dict, primary_param_values, secondary_par
         annot_data = heatmap_data.map(lambda x: f"{x:.0f}%" if pd.notnull(x) else "")
         plt.figure(figsize=(6, 5))
         sns.heatmap(heatmap_data, annot=annot_data, fmt="", cmap="viridis_r",
-                    linewidths=.5, cbar_kws={'label': 'Accuracy (%)'})
+                    linewidths=.5, cbar_kws={'label': 'Accuracy (%)'}, vmin=0, vmax=100)
         plt.title(f'{title_prefix} (%)')
         plt.xlabel(primary_param_name)
         plt.ylabel(secondary_param_name)
