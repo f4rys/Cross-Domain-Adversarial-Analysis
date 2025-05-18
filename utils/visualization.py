@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from utils.helpers import inv_tensor_transform, get_class_name
-
+import numpy as np
 
 def plot_accuracy_vs_param(param_values, accuracies, param_label, title):
     """Plots accuracy vs. a specified parameter."""
@@ -136,4 +136,74 @@ def visualize_adversarial_grid(num_samples_to_show, clean_data, column_definitio
             ax_adv.axis('off')
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust rect based on suptitle
+    plt.show()
+
+def plot_model_comparison_bar_chart(all_model_results, attack_names, metric='accuracy'):
+    """
+    Plots a bar chart comparing models based on a specified metric (e.g., accuracy, confidence)
+    for different adversarial attacks, including clean accuracy.
+    """
+    model_names = list(all_model_results.keys())
+    num_models = len(model_names)
+
+    # Categories to plot: 'Clean' first, then the specified adversarial attacks
+    plot_categories = ['Clean'] + attack_names
+    num_categories = len(plot_categories)
+
+    # Prepare data for plotting
+    metric_values = np.zeros((num_models, num_categories))
+
+    for i, model_name in enumerate(model_names):
+        for j, category_name in enumerate(plot_categories):
+            if category_name == 'Clean':
+                if 'clean' in all_model_results[model_name]:
+                    source_results = all_model_results[model_name]['clean']
+                    if metric == 'accuracy':
+                        if 'correct' in source_results and 'total' in source_results and source_results['total'] > 0:
+                            metric_values[i, j] = (source_results['correct'] / source_results['total']) * 100
+                        else:
+                            metric_values[i, j] = 0
+                    elif metric in source_results: # For other metrics like confidence
+                        metric_values[i, j] = source_results[metric]
+                    else:
+                        metric_values[i, j] = 0 # Metric not found for clean
+                else:
+                    metric_values[i, j] = 0 # No clean data
+            else: # Adversarial attack
+                if category_name in all_model_results[model_name]:
+                    source_results = all_model_results[model_name][category_name]
+                    if metric == 'accuracy':
+                        if 'correct' in source_results and 'total' in source_results and source_results['total'] > 0:
+                            metric_values[i, j] = (source_results['correct'] / source_results['total']) * 100
+                        else:
+                            metric_values[i, j] = 0
+                    elif metric in source_results:
+                        metric_values[i, j] = source_results[metric]
+                    else:
+                        metric_values[i, j] = 0 # Metric not found for attack
+                else:
+                    metric_values[i, j] = 0 # Attack data not found
+
+    # Plotting
+    fig, ax = plt.subplots(figsize=(10 + num_categories * 1.5, 7)) # Adjusted figsize for more categories
+    
+    bar_width = 0.8 / num_categories # Adjust bar width based on number of categories
+    index = np.arange(num_models)
+
+    for j, category_name in enumerate(plot_categories):
+        bars = ax.bar(index + j * bar_width, metric_values[:, j], bar_width, label=category_name)
+        # Add annotations for each bar
+        for bar in bars:
+            yval = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2.0, yval + 0.5, f'{yval:.1f}%', ha='center', va='bottom', fontsize=8)
+
+    ax.set_xlabel('Model')
+    ax.set_ylabel(metric.replace('_', ' ').title() + (' (%)' if metric == 'accuracy' else ''))
+    ax.set_title(f'Model Comparison: {metric.replace("_", " ").title()} under Various Conditions')
+    ax.set_xticks(index + bar_width * (num_categories - 1) / 2)
+    ax.set_xticklabels(model_names, rotation=45, ha="right")
+    ax.legend(title="Condition") # Updated legend title
+    ax.grid(True, axis='y', linestyle='--', alpha=0.7)
+    
+    plt.tight_layout()
     plt.show()
