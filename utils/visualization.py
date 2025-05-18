@@ -27,10 +27,6 @@ def visualize_accuracy_heatmap(results_dict, primary_param_values, secondary_par
     Visualizes accuracy heatmaps for attacks with two varying parameters, 
     potentially with other parameters fixed (multi-level heatmaps if fixed_params_dict is used).
     """
-    if not primary_param_values or not secondary_param_values:
-        print("Primary or secondary parameter values list is empty. Cannot generate heatmap.")
-        return
-
     if fixed_params_dict and any(fixed_params_dict.values()):
         # Determine the parameter to iterate over for creating multiple heatmaps
         fixed_param_iter_name = list(fixed_params_dict.keys())[0]
@@ -94,37 +90,16 @@ def visualize_adversarial_grid(num_samples_to_show, clean_data, column_definitio
     """
     Visualizes a grid of images: clean examples in the first column, 
     and various adversarial examples (defined by column_definitions) in subsequent columns.
-
-    Args:
-        num_samples_to_show (int): Max number of samples (rows) to display.
-        clean_data (dict): Dict containing 'images', 'preds', 'labels', 'confidences' for clean data.
-        column_definitions (list): List of dicts, each defining an adversarial column.
-                                   Each dict: {'title_segment': str, 'data_results': dict}
-                                   where 'data_results' has 'images', 'preds', 'confidences'.
-        imagenet_classes (dict): Mapping from class index to class name.
-        figure_suptitle (str): Overall title for the figure.
     """
-    if not clean_data or not clean_data.get('images') or not clean_data.get('labels'):
-        print("Clean data is missing, empty, or does not contain 'images' or 'labels'. Cannot visualize.")
-        return
-    if num_samples_to_show <= 0:
-        print("num_samples_to_show is non-positive, nothing to display.")
-        return
-    
-    actual_num_samples = min(num_samples_to_show, len(clean_data['images']))
-    if actual_num_samples == 0:
-        print("No clean samples available to show based on num_samples_to_show and available data.")
-        return
-
     num_adv_cols = len(column_definitions)
     # Ensure axs is always a 2D array using squeeze=False
-    fig, axs = plt.subplots(actual_num_samples, 1 + num_adv_cols, 
-                            figsize=(3.5 * (1 + num_adv_cols), 3.5 * actual_num_samples), 
+    fig, axs = plt.subplots(num_samples_to_show, 1 + num_adv_cols, 
+                            figsize=(3.5 * (1 + num_adv_cols), 3.5 * num_samples_to_show), 
                             squeeze=False) 
     
     fig.suptitle(figure_suptitle, fontsize=16)
 
-    for i in range(actual_num_samples):
+    for i in range(num_samples_to_show):
         # Display clean image
         clean_img_tensor = clean_data['images'][i]
         clean_pred_idx = clean_data['preds'][i]
