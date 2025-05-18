@@ -56,9 +56,11 @@ def visualize_accuracy_heatmap(results_dict, primary_param_values, secondary_par
                          heatmap_data.loc[secondary_val, primary_val] = result_data['accuracy']
             
             heatmap_data = heatmap_data.apply(pd.to_numeric, errors='coerce').sort_index(axis=0).sort_index(axis=1)
-            sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="viridis_r", 
+            # Create a DataFrame of formatted strings for annotations
+            annot_data = heatmap_data.map(lambda x: f"{x:.0f}%" if pd.notnull(x) else "")
+            sns.heatmap(heatmap_data, annot=annot_data, fmt="", cmap="viridis_r", 
                         linewidths=.5, cbar_kws={'label': 'Accuracy (%)'}, ax=ax)
-            ax.set_title(f'{title_prefix} (%) for {fixed_param_iter_name}={fixed_val}')
+            ax.set_title(f'{title_prefix} for {fixed_param_iter_name}={fixed_val}')
             ax.set_xlabel(primary_param_name)
             ax.set_ylabel(secondary_param_name)
 
@@ -75,8 +77,10 @@ def visualize_accuracy_heatmap(results_dict, primary_param_values, secondary_par
                     heatmap_data.loc[secondary_val, primary_val] = result_data['accuracy']
 
         heatmap_data = heatmap_data.apply(pd.to_numeric, errors='coerce').sort_index(axis=0).sort_index(axis=1)
+        # Create a DataFrame of formatted strings for annotations
+        annot_data = heatmap_data.map(lambda x: f"{x:.0f}%" if pd.notnull(x) else "")
         plt.figure(figsize=(6, 5))
-        sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="viridis_r",
+        sns.heatmap(heatmap_data, annot=annot_data, fmt="", cmap="viridis_r",
                     linewidths=.5, cbar_kws={'label': 'Accuracy (%)'})
         plt.title(f'{title_prefix} (%)')
         plt.xlabel(primary_param_name)
