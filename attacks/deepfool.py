@@ -18,7 +18,6 @@ class DeepFool:
         self.min_val = (0 - mean) / std
         self.max_val = (1 - mean) / std
 
-
     def __repr__(self):
         return f"DeepFool(steps={self.steps}, overshoot={self.overshoot}, num_classes={self.num_classes})"
 
@@ -85,7 +84,6 @@ class DeepFool:
                     # This replaces the more complex if/elif structure previously
                     print(f"Unexpected Jacobian shape: {grads_jacobian.shape} for image {idx} at step {step}. Expected (num_classes, 1, C, H, W).")
                     break
-
 
                 # Get logit and gradient for the current predicted class
                 f_k_all = outputs[0]  # Logits for all classes, Shape [num_classes]
