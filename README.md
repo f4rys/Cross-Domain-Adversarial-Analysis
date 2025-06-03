@@ -1,6 +1,6 @@
-# CNN-Adversarial-Attacks-Analysis
+# Adversarial-Attacks-Analysis
 
-This repository explores the vulnerabilities of Convolutional Neural Networks (CNNs) and hyperspectral models to adversarial attacks. It provides experiments and analysis on standard CNN architectures as well as the HybridSN model for hyperspectral image classification.
+This repository explores the vulnerabilities of Convolutional Neural Networks (CNNs) and hyperspectral model to adversarial attacks. It provides experiments and analysis on standard CNN architectures as well as the HybridSN model for hyperspectral image classification.
 
 ## Project Overview
 - **Adversarial Attacks on CNNs:** Evaluate and compare the robustness of CNNs against various adversarial attack methods (e.g., FGSM, PGD, DeepFool, CW) using the ImageNet validation set.
