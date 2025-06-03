@@ -3,6 +3,7 @@
 This repository explores the vulnerabilities of Convolutional Neural Networks (CNNs) and hyperspectral model to adversarial attacks. It provides experiments and analysis on standard CNN architectures as well as the HybridSN model for hyperspectral image classification.
 
 ## Project Overview
+- **Attacks** This project contains implementations of FGSM (Fast Gradient Sign Method), PGD (Projected Gradient Descent), CW (Carlini & Wagner) and DeepFool (untargeted).
 - **Adversarial Attacks on CNNs:** Evaluate and compare the robustness of CNNs against various adversarial attack methods (e.g., FGSM, PGD, DeepFool, CW) using the ImageNet validation set.
 - **Hyperspectral Model Analysis:** Analyze the impact of adversarial attacks on the HybridSN model using the Indian Pines dataset.
 - **Notebooks:**
