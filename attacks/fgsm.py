@@ -4,11 +4,13 @@ import torch.nn as nn
 
 
 class FGSM:
-    def __init__(self, model, eps):
+    def __init__(self, model, eps, clip_min=None, clip_max=None):
         self.model = model
         self.loss_fn = nn.CrossEntropyLoss()
         self.eps = eps
         self.device = next(model.parameters()).device
+        self.clip_min = clip_min
+        self.clip_max = clip_max
 
     def __repr__(self):
         return f"FGSM Attack (eps={self.eps})"
@@ -47,12 +49,13 @@ class FGSM:
         # Create the perturbed image by adjusting each pixel of the input image
         perturbed_image = images_for_grad + self.eps * sign_data_grad
 
-        # Clip the perturbed image to remain within the epsilon-ball of the original image.
-        # This ensures the perturbation magnitude is bounded by epsilon in the L-infinity norm.
-        # Since the input 'images' are already normalized, we clip relative to the normalized original image.
-        min_val = original_images - self.eps
-        max_val = original_images + self.eps
-        perturbed_image = torch.clamp(perturbed_image, min=min_val, max=max_val)
+        # Unified clamping logic
+        if self.clip_min is not None and self.clip_max is not None:
+            perturbed_image = torch.clamp(perturbed_image, min=self.clip_min, max=self.clip_max)
+        else:
+            min_val = original_images - self.eps
+            max_val = original_images + self.eps
+            perturbed_image = torch.clamp(perturbed_image, min=min_val, max=max_val)
 
         # Return the perturbed image, detached from the computation graph
         return perturbed_image.detach()

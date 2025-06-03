@@ -4,13 +4,15 @@ import torch.nn as nn
 
 
 class PGD:
-    def __init__(self, model, eps, alpha, steps):
+    def __init__(self, model, eps, alpha, steps, clip_min=None, clip_max=None):
         self.model = model
         self.loss_fn = nn.CrossEntropyLoss()
         self.eps = eps
         self.alpha = alpha
         self.steps = steps
         self.device = next(model.parameters()).device
+        self.clip_min = clip_min
+        self.clip_max = clip_max
 
     def __repr__(self):
         return f"PGD(eps={self.eps}, alpha={self.alpha}, steps={self.steps})"
@@ -46,7 +48,6 @@ class PGD:
                 # or the model part processing the input didn't run.
                 # In this context, it likely means the image is already maximally wrong
                 # or something unexpected happened. We can stop iterating for this image/batch.
-                # print(f"Warning: Gradient for adv_images is None in PGD step. Stopping iteration.") # Optional warning
                 break # Exit the loop for this batch
 
             # Collect the sign of the gradients
@@ -66,19 +67,15 @@ class PGD:
             # Apply clipped perturbation to original image to ensure it stays within the L-infinity ball
             adv_images = original_images + perturbation
 
-            # Optional: Clip final image values to be valid (e.g., if inputs were [0,1] before normalization)
-            # This depends on whether the original 'images' input to the function are expected
-            # to be in a specific range (like [0,1]) or are already normalized.
-            # Since the notebook uses normalized images, clipping based on normalized bounds might be needed
-            # if the perturbation pushes values outside the valid normalized range.
-            # However, the standard PGD often clips only the perturbation magnitude (as done above).
-            # If clipping the final image is desired:
-            mean = torch.tensor([0.485, 0.456, 0.406], device=self.device).view(1, 3, 1, 1)
-            std = torch.tensor([0.229, 0.224, 0.225], device=self.device).view(1, 3, 1, 1)
-            min_val = (0 - mean) / std
-            max_val = (1 - mean) / std
-            adv_images = torch.clamp(adv_images, min=min_val, max=max_val)
-
+            # Unified clamping logic
+            if self.clip_min is not None and self.clip_max is not None:
+                adv_images = torch.clamp(adv_images, min=self.clip_min, max=self.clip_max)
+            else:
+                mean = torch.tensor([0.485, 0.456, 0.406], device=self.device).view(1, 3, 1, 1)
+                std = torch.tensor([0.229, 0.224, 0.225], device=self.device).view(1, 3, 1, 1)
+                min_val = (0 - mean) / std
+                max_val = (1 - mean) / std
+                adv_images = torch.clamp(adv_images, min=min_val, max=max_val)
 
         # Return the final perturbed image, detached from the computation graph
         return adv_images.detach()

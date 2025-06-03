@@ -4,19 +4,22 @@ import torch.autograd.functional as F
 
 
 class DeepFool:
-    def __init__(self, model, steps, overshoot, num_classes):
+    def __init__(self, model, steps, overshoot, num_classes, clip_min=None, clip_max=None):
         self.model = model
         self.steps = steps
         self.overshoot = overshoot
         self.num_classes = num_classes
         self.device = next(model.parameters()).device
-
-        # Calculate normalized bounds based on ImageNet normalization
-        # These are the min/max values in the normalized space corresponding to [0, 1] pixel values
-        mean = torch.tensor([0.485, 0.456, 0.406], device=self.device).view(1, 3, 1, 1)
-        std = torch.tensor([0.229, 0.224, 0.225], device=self.device).view(1, 3, 1, 1)
-        self.min_val = (0 - mean) / std
-        self.max_val = (1 - mean) / std
+        self.clip_min = clip_min
+        self.clip_max = clip_max
+        if self.clip_min is None or self.clip_max is None:
+            mean = torch.tensor([0.485, 0.456, 0.406], device=self.device).view(1, 3, 1, 1)
+            std = torch.tensor([0.229, 0.224, 0.225], device=self.device).view(1, 3, 1, 1)
+            self.min_val = (0 - mean) / std
+            self.max_val = (1 - mean) / std
+        else:
+            self.min_val = self.clip_min
+            self.max_val = self.clip_max
 
     def __repr__(self):
         return f"DeepFool(steps={self.steps}, overshoot={self.overshoot}, num_classes={self.num_classes})"
