@@ -1,4 +1,4 @@
-# Adversarial-Attacks-Analysis
+# Adversarial Attacks Analysis
 
 This repository explores the vulnerabilities of Convolutional Neural Networks (CNNs) and hyperspectral model to adversarial attacks. It provides experiments and analysis on standard CNN architectures as well as the HybridSN model for hyperspectral image classification.
 
