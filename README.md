@@ -8,13 +8,14 @@ This repository explores the vulnerabilities of Convolutional Neural Networks (C
 - **Hyperspectral Model Analysis:** Analyze the impact of adversarial attacks on the HybridSN model using the Indian Pines dataset.
 - **Notebooks:**
   - `model_comparison.ipynb` and `parameter_impact.ipynb`: Experiments on CNNs and adversarial attacks.
+  - `jpeg_impact.ipynb`: Analysis of JPEG compression effects on adversarial robustness of CNNs.
   - `hyperspectral.ipynb`: Experiments on the HybridSN model with hyperspectral data.
 
 ## Environment Setup
 
 This repository provides two environment YAML files for easy setup with Conda:
 
-- **For CNN experiments (`model_comparison.ipynb`, `parameter_impact.ipynb`):**
+- **For CNN experiments (`model_comparison.ipynb`, `parameter_impact.ipynb`, `jpeg_impact.ipynb`):**
   ```sh
   conda env create -f env_cnns.yml
   conda activate CNNs
