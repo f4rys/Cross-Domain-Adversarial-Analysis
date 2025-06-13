@@ -1,15 +1,26 @@
-# Adversarial Attacks Analysis
+# Adversarial Robustness Assessment of Deep Neural Networks: A Comparative Analysis Across Standard and Hyperspectral Image Classification
 
-This repository explores the vulnerabilities of Convolutional Neural Networks (CNNs) and hyperspectral model to adversarial attacks. It provides experiments and analysis on standard CNN architectures as well as the HybridSN model for hyperspectral image classification.
+This repository presents a comprehensive evaluation for assessing the adversarial robustness of deep neural networks across different domains. The study conducts systematic experiments on standard Convolutional Neural Networks (CNNs) using natural imagery and specialized hyperspectral classification models (HybridSN), providing insights into vulnerability patterns and defense mechanisms across diverse image modalities.
 
 ## Project Overview
-- **Attacks** This project contains implementations of FGSM (Fast Gradient Sign Method), PGD (Projected Gradient Descent), CW (Carlini & Wagner) and DeepFool (untargeted).
-- **Adversarial Attacks on CNNs:** Evaluate and compare the robustness of CNNs against various adversarial attack methods (e.g., FGSM, PGD, DeepFool, CW) using the ImageNet validation set.
-- **Hyperspectral Model Analysis:** Analyze the impact of adversarial attacks on the HybridSN model using the Indian Pines dataset.
-- **Notebooks:**
-  - `model_comparison.ipynb` and `parameter_impact.ipynb`: Experiments on CNNs and adversarial attacks.
-  - `jpeg_impact.ipynb`: Analysis of JPEG compression effects on adversarial robustness of CNNs.
-  - `hyperspectral.ipynb`: Experiments on the HybridSN model with hyperspectral data.
+
+This research framework implements and evaluates multiple state-of-the-art adversarial attack methodologies across two distinct domains:
+
+### **Attack Implementations**
+- **FGSM (Fast Gradient Sign Method):** Single-step gradient-based attack for efficient adversarial example generation
+- **PGD (Projected Gradient Descent):** Multi-step iterative attack with projection constraints for stronger perturbations
+- **C&W (Carlini & Wagner):** Optimization-based attack minimizing perturbation magnitude while maintaining misclassification
+- **DeepFool:** Geometric approach finding minimal perturbations to decision boundaries
+
+### **Evaluation Domains**
+- **Standard Computer Vision:** Robustness assessment of CNN architectures (ResNet, DenseNet, VGG) on ImageNet validation subset
+- **Hyperspectral Remote Sensing:** Vulnerability analysis of HybridSN model for hyperspectral image classification using Indian Pines dataset
+
+### **Analysis Components**
+- **Model Comparison (`model_comparison.ipynb`):** Comparative robustness evaluation across different CNN architectures
+- **Parameter Impact Analysis (`parameter_impact.ipynb`):** Systematic study of attack parameter sensitivity and effectiveness
+- **JPEG Compression Effects (`jpeg_impact.ipynb`):** Investigation of compression-based defense mechanisms and their impact on adversarial robustness
+- **Hyperspectral Analysis (`hyperspectral.ipynb`):** Domain-specific evaluation of adversarial attacks on hyperspectral classification models
 
 ## Environment Setup
 
