@@ -1,4 +1,10 @@
-"""DeepFool attack implementation for PyTorch."""
+"""
+DeepFool untargeted attack implementation for PyTorch.
+
+This implementation follows the original DeepFool algorithm (Moosavi-Dezfooli et al., 2016)
+for finding minimal perturbations to cross decision boundaries. This is the untargeted variant
+that aims to cause misclassification to any incorrect class without specifying a target.
+"""
 import torch
 import torch.autograd.functional as F
 
@@ -90,7 +96,7 @@ class DeepFool:
 
                 # Get logit and gradient for the current predicted class
                 f_k_all = outputs[0]  # Logits for all classes, Shape [num_classes]
-                
+
                 f_pred_val = f_k_all[current_pred_label].detach() # Scalar tensor, logit of current prediction
                 w_pred_val = grads[current_pred_label]      # Gradient for current prediction, Shape [C, H, W]
 
@@ -102,7 +108,7 @@ class DeepFool:
                 # Calculate L2 norm squared for all w_diffs (sum over C, H, W dimensions)
                 # Add small epsilon for numerical stability
                 w_diffs_norm_sq = torch.sum(w_diffs.pow(2), dim=(1, 2, 3)) + 1e-9 # Shape [num_classes]
-                
+
                 # Avoid division by zero if w_diffs_norm_sq is zero (e.g. if w_diff is zero)
                 # This can happen if grads for a class k are identical to grads for current_pred_label
                 # or if a gradient is zero.
@@ -111,7 +117,7 @@ class DeepFool:
                 pert_ratios = torch.abs(f_diffs) / w_diffs_norm_sq # Shape [num_classes]
 
                 # Mask out the current predicted class by setting its ratio to infinity
-                pert_ratios[current_pred_label] = float('inf')
+                pert_ratios[current_pred_label] = float("inf")
 
                 # Find the minimum perturbation ratio and corresponding class
                 min_pert_ratio, closest_boundary_l = torch.min(pert_ratios, dim=0)
@@ -120,7 +126,7 @@ class DeepFool:
                 if torch.isinf(min_pert_ratio) or closest_boundary_l.item() == current_pred_label:
                     print(f"Warning: DeepFool couldn't find a valid boundary for image {idx} at step {step}.")
                     break # Stop iterating steps for this image
-                
+
                 # Get the w_diff for the closest boundary
                 closest_w_diff = w_diffs[closest_boundary_l]
 

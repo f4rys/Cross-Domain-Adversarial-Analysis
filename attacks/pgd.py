@@ -1,6 +1,12 @@
-"""PGD (Projected Gradient Descent) attack implementation for PyTorch."""
+"""
+PGD (Projected Gradient Descent) untargeted L∞-norm attack implementation for PyTorch.
+
+This implementation follows the PGD algorithm (Madry et al., 2017) which extends FGSM
+with multiple iterative steps and projection back to the L∞-norm constraint set.
+This is the untargeted variant that performs gradient ascent to maximize loss.
+"""
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class PGD:

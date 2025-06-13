@@ -1,6 +1,12 @@
-"""FGSM (Fast Gradient Sign Method) attack implementation for PyTorch."""
+"""
+FGSM (Fast Gradient Sign Method) untargeted attack implementation for PyTorch.
+
+This implementation follows the original FGSM algorithm (Goodfellow et al., 2014)
+which uses the sign of gradients to create adversarial examples in a single step.
+This is the untargeted variant that maximizes the loss for the true label.
+"""
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class FGSM:

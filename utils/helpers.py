@@ -1,7 +1,7 @@
-import torch
-import torchvision.transforms as transforms
+"""Utility functions for preprocessing, loading ImageNet classes, and setting seeds."""
 import numpy as np
-
+import torch
+from torchvision import transforms
 
 # Standard normalization for ImageNet
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -18,27 +18,27 @@ preprocess = transforms.Compose([
 # Inverse transform to display images later
 inv_normalize = transforms.Normalize(
     mean=[-0.485/0.229, -0.456/0.224, -0.406/0.225],
-    std=[1/0.229, 1/0.224, 1/0.225]
+    std=[1/0.229, 1/0.224, 1/0.225],
 )
 
 inv_tensor_transform = transforms.Compose([
     inv_normalize,
-    transforms.ToPILImage()
+    transforms.ToPILImage(),
 ])
 
 def load_imagenet_classes(label_map_file):
     """Loads ImageNet class labels from a file."""
-    with open(label_map_file, "r") as f:
+    with open(label_map_file) as f:
         lines = f.readlines()
-    
+
     temp_classes = {}
     for line in lines:
         line = line.strip()
-        parts = line.split(',', 1)
+        parts = line.split(",", 1)
         idx = int(parts[0].strip())
-        name = parts[1].strip().replace("'", "").replace('"', '')
+        name = parts[1].strip().replace("'", "").replace('"', "")
         # Take only the main name if multiple are given
-        name = name.split(',')[0].strip()
+        name = name.split(",")[0].strip()
         temp_classes[idx] = name
     return temp_classes
 

@@ -1,6 +1,12 @@
-"""CW (Carlini & Wagner) attack implementation for PyTorch."""
+"""
+C&W (Carlini & Wagner) untargeted L2-norm attack implementation for PyTorch.
+
+This implementation follows the C&W L2 attack (Carlini & Wagner, 2017) which uses
+optimization-based approach to find minimal L2-norm perturbations. This is the
+untargeted variant that aims to cause misclassification while minimizing distortion.
+"""
 import torch
-import torch.optim as optim
+from torch import optim
 
 
 class CW:
@@ -37,7 +43,7 @@ class CW:
         w = torch.atanh(torch.clamp(images_orig_scale * 2 - 1, -1 + 1e-6, 1 - 1e-6)).detach().requires_grad_(True)
         optimizer = optim.AdamW([w], lr=self.lr)
         best_adv_images = images.clone().detach()
-        best_l2 = torch.full((batch_size,), float('inf'), device=self.device)
+        best_l2 = torch.full((batch_size,), float("inf"), device=self.device)
         self.model.eval()
         for step in range(self.steps):
             optimizer.zero_grad()
