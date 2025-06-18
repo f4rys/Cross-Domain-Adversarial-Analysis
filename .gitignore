@@ -174,3 +174,16 @@ cython_debug/
 .pypirc
 
 *.slurm
+
+# LaTeX auxiliary files
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.run.xml
+report-blx.bib
