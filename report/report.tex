@@ -25,6 +25,18 @@
   \renewcommand{\refname}{Bibliografia}
 }
 
+\DeclareCiteCommand{\supercite}[\mkbibsuperscript]
+  {\iffieldundef{prenote}
+     {}
+     {\BibliographyWarning{Ignoring prenote argument}}%
+   \iffieldundef{postnote}
+     {}
+     {\BibliographyWarning{Ignoring postnote argument}}}
+  {\usebibmacro{citeindex}%
+   \bibopenbracket\usebibmacro{cite}\bibclosebracket}
+  {\supercitedelim}
+  {}
+
 \title{Przegląd ataków adversarialnych na sieci konwolucyjne (CNN)}
 \author{
     Wojciech Bartoszek \\
@@ -41,21 +53,21 @@
 \end{center}
 
 \begin{abstract}
-    Sieci konwolucyjne (CNN) zrewolucjonizowały przetwarzanie obrazów, jednak pozostają podatne na ataki adversarialne --- celowo wprowadzone subtelne zakłócenia w danych wejściowych, które wprowadzają błędy w przewidywaniach modeli. W niniejszej pracy eksperymentalnej przeanalizowano metody ataków adversarialnych na CNN, ich skutki oraz strategie obronne. Scharakteryzowano podstawowe techniki takie jak Fast Gradient Sign Method (FGSM), Projected Gradient Descent (PGD) oraz ataki Carliniego-Wagnera, ze szczególnym uwzględnieniem ich podstaw matematycznych i skuteczności praktycznej. Przeprowadzono eksperymenty na podzbiorze danych ImageNet oraz obrazach hiperspektralnych z wykorzystaniem czterech architektur sieci (ResNet50, VGG16, DenseNet121, MobileNetV2). Omówiono mechanizmy obronne, w tym przetwarzanie wstępne danych poprzez kompresję JPEG, wskazując na ich skuteczność w mitigacji ataków adversarialnych. Wykazano uniwersalną podatność architektur CNN na ataki, przy czym ResNet50 wykazuje najwyższą odporność, a ataki Carlini \& Wagner okazują się najskuteczniejsze. Przeanalizowano także efekt kompresji JPEG jako naturalnego mechanizmu defensywnego. Wyniki wskazują na fundamentalne wyzwanie związane z równoważeniem dokładności i odporności modeli oraz konieczność rozwoju wielowarstwowych strategii ochronnych. Zaproponowano kierunki przyszłych badań obejmujące projektowanie inherentnie odpornych architektur oraz zaawansowane metody preprocessing'u defensywnego. Praca integruje perspektywę teoretyczną i praktyczną, oferując kompleksowy obraz wyzwań bezpieczeństwa w głębokich sieciach neuronowych.
+    Sieci konwolucyjne (CNN) zrewolucjonizowały przetwarzanie obrazów, jednak pozostają podatne na ataki adversarialne --- celowo wprowadzone subtelne zakłócenia w danych wejściowych, które wprowadzają błędy w przewidywaniach modeli. W niniejszej pracy eksperymentalnej przeanalizowano metody ataków adversarialnych na CNN, ich skutki oraz strategie obronne. Scharakteryzowano podstawowe techniki takie jak Fast Gradient Sign Method (FGSM), Projected Gradient Descent (PGD), ataki Carliniego-Wagnera oraz DeepFool, ze szczególnym uwzględnieniem ich podstaw matematycznych i skuteczności praktycznej. Przeprowadzono eksperymenty na podzbiorze danych walidacyjnych ImageNet oraz obrazach hiperspektralnych z wykorzystaniem pięciu architektur sieci konwolucyjnych (ResNet50, VGG16, DenseNet121, MobileNetV2, HybridSN). Omówiono mechanizmy obronne, w tym przetwarzanie wstępne danych poprzez kompresję JPEG, wskazując na ich skuteczność w mitigacji ataków adversarialnych. Wykazano uniwersalną podatność architektur CNN na ataki, przy czym ResNet50 wykazuje najwyższą odporność, a ataki Carlini \& Wagner okazują się najskuteczniejsze. Przeanalizowano także efekt kompresji JPEG jako naturalnego mechanizmu defensywnego. Wyniki wskazują na fundamentalne wyzwanie związane z równoważeniem dokładności i odporności modeli oraz konieczność rozwoju wielowarstwowych strategii ochronnych. Zaproponowano kierunki przyszłych badań obejmujące projektowanie inherentnie odpornych architektur oraz zaawansowane metody preprocessing'u defensywnego. Praca integruje perspektywę teoretyczną i praktyczną, oferując kompleksowy obraz wyzwań bezpieczeństwa w głębokich sieciach neuronowych.
 \end{abstract}
 
 
 \section{Wprowadzenie}
 
-Współczesne sieci konwolucyjne (CNN) osiągnęły niezwykłe sukcesy w zadaniach rozpoznawania obrazów, jednak ich podatność na ataki adversarialne stanowi poważne wyzwanie dla bezpieczeństwa systemów opartych na uczeniu maszynowym \cite{szegedy2013intriguing}. Ataki adversarialne polegają na wprowadzeniu celowych, często niepostrzegalnych przez człowieka, modyfikacji do danych wejściowych, które prowadzą do błędnych przewidywań modelu. Zjawisko to budzi szczególne obawy w kontekście zastosowań krytycznych, takich jak autonomiczne pojazdy, systemy medyczne czy bezpieczeństwo publiczne.
+Współczesne sieci konwolucyjne (CNN) osiągnęły niezwykłe sukcesy w zadaniach rozpoznawania obrazów, jednak ich podatność na ataki adversarialne stanowi poważne wyzwanie dla bezpieczeństwa systemów opartych na uczeniu maszynowym \supercite{szegedy2013intriguing}. Ataki adversarialne polegają na wprowadzeniu celowych, często niedostrzegalnych dla człowieka, modyfikacji do danych wejściowych, które prowadzą do błędnych przewidywań modelu. Zjawisko to budzi szczególne obawy w kontekście zastosowań krytycznych, takich jak autonomiczne pojazdy, systemy medyczne czy bezpieczeństwo publiczne.
 
 Celem niniejszej pracy jest przeprowadzenie kompleksowej analizy wpływu różnych metod ataków adversarialnych na wydajność wybranych architektur CNN. Badanie koncentruje się na czterech fundamentalnych technikach ataku:
 
 \begin{itemize}
-    \item \textbf{FGSM (Fast Gradient Sign Method)} \cite{goodfellow2014explaining} --- jednokrokowa metoda gradientowa charakteryzująca się wysoką efektywnością obliczeniową
-    \item \textbf{PGD (Projected Gradient Descent)} \cite{madry2017towards} --- iteracyjne rozszerzenie FGSM zapewniające większą skuteczność
-    \item \textbf{Carlini \& Wagner (C\&W)} \cite{carlini2017towards} --- zaawansowany atak optymalizacyjny minimalizujący perturbacje
-    \item \textbf{DeepFool} \cite{moosavi2016deepfool} --- metoda geometryczna znajdująca minimalne zaburzenia prowadzące do zmiany klasyfikacji
+    \item \textbf{FGSM (Fast Gradient Sign Method)} \supercite{goodfellow2014explaining} --- jednokrokowa metoda gradientowa charakteryzująca się wysoką efektywnością obliczeniową
+    \item \textbf{PGD (Projected Gradient Descent)} \supercite{madry2017towards} --- iteracyjne rozszerzenie FGSM zapewniające większą skuteczność
+    \item \textbf{Carlini \& Wagner (C\&W)} \supercite{carlini2017towards} --- zaawansowany atak optymalizacyjny minimalizujący perturbacje
+    \item \textbf{DeepFool} \supercite{moosavi2016deepfool} --- metoda geometryczna znajdująca minimalne zaburzenia prowadzące do zmiany klasyfikacji
 \end{itemize}
 
 Analiza empiryczna obejmuje cztery reprezentatywne architektury CNN, charakteryzujące się różnymi podejściami projektowymi:
@@ -67,75 +79,85 @@ Analiza empiryczna obejmuje cztery reprezentatywne architektury CNN, charakteryz
     \item \textbf{MobileNetV2} --- efektywna obliczeniowo sieć przeznaczona na urządzenia mobilne
 \end{itemize}
 
-Eksperymenty przeprowadzono na reprezentatywnym podzbiorze danych ImageNet, zawierającym 128 obrazów z różnych klas, co umożliwia kontrolowaną ocenę odporności modeli przy zachowaniu obliczeniowej wykonalności eksperymentów. Dodatkowo, w celu rozszerzenia zakresu analizy, zbadano także wpływ ataków na obrazy hiperspektralne z wykorzystaniem zbioru danych Indian Pines oraz skuteczność kompresji JPEG jako metody defensywnej. Kod źródłowy implementacji oraz szczegółowe wyniki eksperymentów zostały udostępnione publicznie pod adresem: \url{https://github.com/f4rys/Cross-Domain-Adversarial-Analysis}
+Eksperymenty przeprowadzono na reprezentatywnym podzbiorze zbioru walidacyjnego ImageNet, zawierającym 128 obrazów z różnych klas, co umożliwia kontrolowaną ocenę odporności modeli przy zachowaniu obliczeniowej wykonalności eksperymentów. Dodatkowo, w celu rozszerzenia zakresu analizy, zbadano także wpływ ataków na obrazy hiperspektralne z wykorzystaniem modelu HybridSN na zbiorze danych Indian Pines, oraz skuteczność kompresji JPEG jako metody defensywnej. Kod źródłowy implementacji oraz szczegółowe wyniki eksperymentów zostały udostępnione publicznie pod adresem: \url{https://github.com/f4rys/Cross-Domain-Adversarial-Analysis}
 
 \section{Metodologia ataków adversarialnych}
 
+W niniejszym badaniu zaimplementowano cztery fundamentalne metody ataków adversarialnych w frameworku PyTorch, wykorzystując specyficzne warianty i optymalizacje dostosowane do charakterystyki badanych modeli. Wszystkie implementacje bazują na oryginalnych algorytmach z literatury, lecz zostały zoptymalizowane pod kątem wydajności obliczeniowej i stabilności numerycznej.
+
 \subsection{Fast Gradient Sign Method (FGSM)}
 
-Fast Gradient Sign Method \cite{goodfellow2014explaining} stanowi fundament jednokrokowych ataków adversarialnych. Metoda ta wykorzystuje linearną naturę sieci neuronowych w okolicy punktu danych wejściowych, generując perturbacje w kierunku gradientu funkcji straty. Matematycznie, adversarialny przykład $x'$ generowany jest zgodnie z równaniem:
+Fast Gradient Sign Method \supercite{goodfellow2014explaining} stanowi fundament jednokrokowych ataków adversarialnych. W eksperymentach wykorzystano wariant $untargeted$, który maksymalizuje funkcję straty dla prawdziwej etykiety bez określania konkretnej klasy docelowej. Implementacja wykorzystuje CrossEntropyLoss i wykonuje gradient ascent względem danych wejściowych.
+
+Matematycznie, adversarialny przykład $x'$ generowany jest zgodnie z równaniem:
 
 \begin{equation}
     x' = x + \epsilon \cdot \text{sign}(\nabla_x J(\theta, x, y))
 \end{equation}
 
-gdzie $x$ oznacza oryginalny obraz, $\epsilon$ parametr kontrolujący intensywność ataku, $J(\theta, x, y)$ funkcję straty modelu z parametrami $\theta$ dla danej pary (obraz, etykieta), a $\nabla_x J$ gradient tej funkcji względem danych wejściowych.
+gdzie $x$ oznacza oryginalny obraz, $\epsilon$ parametr kontrolujący intensywność ataku. $J(\theta, x, y)$ funkcję straty modelu z parametrami $\theta$ dla danej pary (obraz, etykieta), a $\nabla_x J$ gradient tej funkcji względem danych wejściowych.
 
-Główną zaletą FGSM jest jego efektywność obliczeniowa --- wymaga jedynie jednokrotnego obliczenia gradientu. Jednakże, linearność aproksymacji ogranicza jego skuteczność przeciwko modelom o większej odporności.
+Główną zaletą FGSM jest jego efektywność obliczeniowa --- wymaga jedynie jednokrotnego obliczenia gradientu.
 
 \subsection{Projected Gradient Descent (PGD)}
 
-Projected Gradient Descent \cite{madry2017towards} stanowi iteracyjne rozszerzenie metody FGSM, umożliwiając generowanie silniejszych ataków poprzez wielokrotną aktualizację perturbacji. Algorytm PGD można sformalizować jako:
+Projected Gradient Descent \supercite{madry2017towards} stanowi iteracyjne rozszerzenie metody FGSM, zaimplementowane jako wariant $untargeted$ z normą $\ell_\infty$. Algorytm wykonuje wielokrotną aktualizację perturbacji z projekcją na kulę $\ell_\infty$ o promieniu $\epsilon$.
+
+Algorytm PGD można sformalizować jako:
 
 \begin{equation}
     x^{t+1} = \Pi_{S}(x^t + \alpha \cdot \text{sign}(\nabla_x J(\theta, x^t, y)))
 \end{equation}
 
-gdzie $\Pi_{S}$ oznacza operację projekcji na dopuszczalny zbiór perturbacji $S$ (najczęściej $\ell_\infty$-kulę o promieniu $\epsilon$), $\alpha$ rozmiar kroku, a $t$ numer iteracji.
+gdzie $\Pi_{S}$ oznacza operację projekcji na dopuszczalny zbiór perturbacji $S$ (kulę $\ell_\infty$ o promieniu $\epsilon$), $\alpha$ rozmiar kroku, a $t$ numer iteracji.
 
-PGD charakteryzuje się większą skutecznością niż FGSM kosztem zwiększonej złożoności obliczeniowej. Metoda ta jest często wykorzystywana jako punkt odniesienia dla oceny odporności modeli ze względu na swoje silne właściwości.
+Implementacja zawiera mechanizm wczesnego zatrzymywania --- jeśli gradient względem obrazu adversarialnego wynosi zero (co może oznaczać maksymalne błędne przewidywanie), algorytm przerywa iteracje dla danej próbki.
 
 \subsection{Carlini \& Wagner (C\&W)}
 
-Atak Carlini \& Wagner \cite{carlini2017towards} reprezentuje zaawansowane podejście optymalizacyjne do generowania adversarialnych przykładów. W przeciwieństwie do metod gradientowych, C\&W formułuje problem jako zadanie optymalizacji z ograniczeniami:
+Atak Carlini \& Wagner \supercite{carlini2017towards} reprezentuje zaawansowane podejście optymalizacyjne zaimplementowane jako wariant $untargeted$ z normą $\ell_2$. W przeciwieństwie do metod gradientowych, C\&W formułuje problem jako zadanie optymalizacji z ograniczeniami wykorzystując AdamW optimizer.
+
+Implementacja wykorzystuje transformację atanh dla zapewnienia, że wartości pikseli pozostają w dopuszczalnym zakresie:
 
 \begin{equation}
-    \min \|x' - x\|_p + c \cdot f(x')
+    x' = \frac{1}{2}(\tanh(w) + 1), \quad w = \text{atanh}(2x - 1)
 \end{equation}
 
-gdzie $f(x')$ oznacza funkcję obiektywną zaprojektowaną tak, aby $f(x') \leq 0$ wtedy i tylko wtedy, gdy $x'$ jest adversarialnym przykładem, a $c$ parametr równoważący minimalność perturbacji z skutecznością ataku.
+Funkcja celu łączy stratę klasyfikacyjną z regularyzacją $\ell_2$:
 
-Kluczową cechą ataku C\&W jest jego zdolność do znajdowania minimalnych perturbacji prowadzących do błędnej klasyfikacji, co czyni go szczególnie trudnym do wykrycia i obrony.
+\begin{equation}
+    \min \|x' - x\|_2 + c \cdot f(x')
+\end{equation}
+
+gdzie $f(x') = \max(Z(x')_{y} - \max_{j \neq y} Z(x')_j + \kappa, 0)$ z $Z(x')$ oznaczającym logity.
+
+Implementacja zawiera mechanizm $best-candidate tracking$ --- przechowuje najlepsze adversarialne przykłady (o najmniejszej normie $\ell_2$) spośród tych, które skutecznie wprowadzają błędną klasyfikację.
 
 \subsection{DeepFool}
 
-DeepFool \cite{moosavi2016deepfool} wykorzystuje geometryczne podejście do generowania adversarialnych przykładów poprzez iteracyjną aproksymację granic decyzyjnych klasyfikatora. Algorytm ten minimalizuje normę $\ell_2$ perturbacji poprzez znajdowanie najbliższej hiperpłaszczyzny separującej klasy.
+DeepFool \supercite{moosavi2016deepfool} wykorzystuje geometryczne podejście implementowane jako wariant $untargeted$ minimalizujący normę $\ell_2$. Algorytm iteracyjnie aproksymuje granice decyzyjne klasyfikatora poprzez znajdowanie najbliższej hiperpłaszczyzny separującej klasy.
 
-W każdej iteracji $t$, DeepFool oblicza minimalną perturbację $r_t$ potrzebną do przekroczenia lokalnej granicy decyzyjnej:
+Implementacja wykorzystuje obliczenia macierzy Jacobian dla efektywnego wyliczenia gradientów względem wszystkich klas jednocześnie. W każdej iteracji $t$, DeepFool oblicza minimalną perturbację $r_t$ potrzebną do przekroczenia lokalnej granicy decyzyjnej:
 
 \begin{equation}
-    r_t = -\frac{f_k(x_t)}{\|\nabla f_k(x_t)\|_2^2} \nabla f_k(x_t)
+    r_t = \frac{|f_k(x_t) - f_{j^*}(x_t)|}{\|\nabla f_k(x_t) - \nabla f_{j^*}(x_t)\|_2^2} (\nabla f_k(x_t) - \nabla f_{j^*}(x_t))
 \end{equation}
 
-gdzie $f_k$ oznacza różnicę między logitami klasy docelowej a najwyższym logiitem pozostałych klas.
-
-Metoda DeepFool charakteryzuje się generowaniem perturbacji o małej normie $\ell_2$, co czyni je szczególnie trudnymi do wykrycia wizualnego.
+gdzie $j^*$ oznacza klasę znajdującą się najbliżej granicy decyzyjnej, $f_k$ różnicę logitów między klasą aktualnie przewidywaną a klasą $k$.
 
 \section{Architektury sieci neuronowych}
 
-W niniejszym badaniu wykorzystano cztery reprezentatywne architektury CNN, każda charakteryzująca się odmiennym podejściem projektowym i różnymi mechanizmami uczenia. Wybór tych modeli pozwala na kompleksową ocenę wpływu różnych strategii architekturalnych na odporność względem ataków adversarialnych.
+W niniejszym badaniu wykorzystano cztery reprezentatywne architektury CNN oraz jedną architekturę dedykowaną obrazom hiperspektralnym. Każda z nich charakteryzuje się odmiennym podejściem projektowym i różnymi mechanizmami uczenia. Wybór tych modeli pozwala na kompleksową ocenę wpływu różnych strategii architekturalnych na odporność względem ataków adversarialnych.
 
 \begin{itemize}
-    \item \textbf{ResNet50} \cite{he2016deep} --- architektura wprowadzająca koncepcję połączeń rezydualnych (skip connections), które umożliwiają trenowanie bardzo głębokich sieci poprzez rozwiązanie problemu zaniku gradientu. Połączenia te pozwalają na bezpośredni przepływ informacji między odległymi warstwami, co teoretycznie może wpływać na odporność modelu na perturbacje adversarialne.
-    
-    \item \textbf{VGG16} \cite{simonyan2014very} --- klasyczna architektura charakteryzująca się prostą, sekwencyjną strukturą złożoną z małych filtrów konwolucyjnych (3×3). Mimo swojej prostoty, VGG16 pozostaje ważnym punktem odniesienia w badaniach nad sieciami konwolucyjnymi oraz stanowi reprezentację tradycyjnych podejść architekturalnych.
-    
-    \item \textbf{DenseNet121} \cite{huang2017densely} --- sieć wykorzystująca gęste połączenia, w której każda warstwa otrzymuje informacje ze wszystkich poprzedzających warstw. Taka architektura promuje ponowne wykorzystanie cech (feature reuse) i może prowadzić do lepszej regularyzacji, co potencjalnie wpływa na odporność adversarialną.
-    
-    \item \textbf{MobileNetV2} \cite{sandler2018mobilenetv2} --- efektywna obliczeniowo architektura zaprojektowana z myślą o urządzeniach o ograniczonych zasobach. Wykorzystuje separowalne konwolucje depthwise oraz połączenia rezydualne w blokach z wąskim gardłem (inverted residuals), co znacząco redukuje liczbę parametrów.
+    \item \textbf{ResNet50} \supercite{he2016deep} --- architektura wprowadzająca koncepcję połączeń rezydualnych (skip connections), które umożliwiają trenowanie bardzo głębokich sieci poprzez rozwiązanie problemu zaniku gradientu. Połączenia te pozwalają na bezpośredni przepływ informacji między odległymi warstwami, co teoretycznie może wpływać na odporność modelu na perturbacje adversarialne.
+    \item \textbf{VGG16} \supercite{simonyan2014very} --- klasyczna architektura charakteryzująca się prostą, sekwencyjną strukturą złożoną z małych filtrów konwolucyjnych (3×3). Mimo swojej prostoty, VGG16 pozostaje ważnym punktem odniesienia w badaniach nad sieciami konwolucyjnymi oraz stanowi reprezentację tradycyjnych podejść architekturalnych.
+    \item \textbf{DenseNet121} \supercite{huang2017densely} --- sieć wykorzystująca gęste połączenia, w której każda warstwa otrzymuje informacje ze wszystkich poprzedzających warstw. Taka architektura promuje ponowne wykorzystanie cech (feature reuse) i może prowadzić do lepszej regularyzacji, co potencjalnie wpływa na odporność adversarialną.
+    \item \textbf{MobileNetV2} \supercite{sandler2018mobilenetv2} --- efektywna obliczeniowo architektura zaprojektowana z myślą o urządzeniach o ograniczonych zasobach. Wykorzystuje separowalne konwolucje depthwise oraz połączenia rezydualne w blokach z wąskim gardłem (inverted residuals), co znacząco redukuje liczbę parametrów.    
+    \item \textbf{HybridSN} \supercite{roy2019hybridsn} --- specjalistyczna architektura przeznaczona do klasyfikacji obrazów hiperspektralnych. Model ten wykorzystuje hybrydowe podejście, łącząc konwolucje 3D (do ekstrakcji cech spektralno-przestrzennych) z konwolucjami 2D (do dalszej ekstrakcji cech przestrzennych). Taka hierarchiczna struktura pozwala na efektywne przetwarzanie danych hiperspektralnych o wysokiej wymiarowości.
 \end{itemize}
 
-Wszystkie modele zostały wczytane jako przedtrenowane wersje z biblioteki torchvision, przeszkolone na pełnym zbiorze danych ImageNet. W eksperymentach wykorzystano reprezentatywny podzbiór 128 obrazów z różnych klas ImageNet, co umożliwia kontrolowaną ocenę odporności modeli przy zachowaniu obliczeniowej wykonalności eksperymentów. Przed przystąpieniem do ataków adversarialnych dokonano oceny baseline'owej dokładności na wybranym podzbiorze.
+Wszystkie modele CNN zostały wczytane jako przedtrenowane wersje z biblioteki torchvision, przeszkolone na pełnym zbiorze danych ImageNet. W niniejszych eksperymentach wykorzystano implementację modelu HybridSN opartą na PyTorch oraz przedtrenowane wagi dostępne w repozytorium GitHub \supercite{hybridsn_implementation}. W eksperymentach wykorzystano reprezentatywny podzbiór 128 obrazów z różnych klas ze zbioru walidacyjnego ImageNet dla modeli CNN, oraz 8192 próbek z 16 klas dla modelu HybridSN na zbiorze Indian Pines, co umożliwia kontrolowaną ocenę odporności modeli przy zachowaniu obliczeniowej wykonalności eksperymentów. Przed przystąpieniem do ataków adversarialnych dokonano oceny baseline'owej dokładności na wybranych podzbiorach.
 
 \section{Metodologia eksperymentalna i wyniki}
 
@@ -143,7 +165,7 @@ Wszystkie modele zostały wczytane jako przedtrenowane wersje z biblioteki torch
 
 Wszystkie eksperymenty zostały przeprowadzone w środowisku PyTorch z wykorzystaniem GPU NVIDIA dla przyspieszenia obliczeń. Dla zapewnienia powtarzalności wyników, ziarno losowości zostało ustalone na stałą wartość. Każdy model był poddawany atakom w odrębnych sesjach w celu uniknięcia interferencji między eksperymentami.
 
-Parametry ataków zostały ustalone następująco: $\epsilon = 0.03$ dla ataków FGSM i PGD (w normie $\ell_\infty$), liczba iteracji PGD = 1, rozmiar kroku $\alpha = 0.01$. Dla ataku C\&W wykorzystano parametr confidence $\kappa = 0$ oraz maksymalnie 1000 iteracji optymalizacji. DeepFool był uruchamiany z maksymalnie 50 iteracjami.
+Parametry ataków zostały ustalone następująco: $\epsilon = 0.03$ dla ataków FGSM i PGD, liczba iteracji PGD = 1, rozmiar kroku $\alpha = 0.005$. Dla ataku C\&W wykorzystano parametr confidence $\kappa = 0$ oraz maksymalnie 5 iteracji optymalizacji oraz parametrem $c=5$. DeepFool był uruchamiany z maksymalnie 5 iteracjami oraz parametrem $overshoot=0.05$.
 
 \subsection{Wyniki ataków na klasyfikację obrazów}
 
@@ -151,7 +173,7 @@ Ocena wpływu ataków adversarialnych została przeprowadzona poprzez pomiar dok
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\textwidth]{model_comparison.png}
-    \caption{Wpływ różnych ataków adversarialnych na dokładność klasyfikacji poszczególnych architektur CNN (przy $\epsilon = 0.03$)}
+    \caption{Wpływ różnych ataków adversarialnych na dokładność klasyfikacji poszczególnych architektur CNN}
     \label{fig:model-comparison}
 \end{figure}
 
@@ -161,17 +183,17 @@ Ocena wpływu ataków adversarialnych została przeprowadzona poprzez pomiar dok
     \hline
     \textbf{Model} & \textbf{Clean} & \textbf{FGSM} & \textbf{PGD} & \textbf{C\&W} & \textbf{DeepFool} \\
     \hline
-    ResNet50 & 89.1\% & 61.7\% & 69.5\% & 3.1\% & 28.1\% \\
-    VGG16 & 77.3\% & 8.6\% & 39.1\% & 0\% & 9.4\% \\
-    DenseNet121 & 82.8\% & 6.2\% & 36.7\% & 0\% & 13.3\% \\
-    MobileNetV2 & 78.9\% & 18.0\% & 38.3\% & 0\% & 11.7\% \\
+    ResNet50 & 89.06\% & 61.72\% & 69.53\% & 3.12\% & 28.12\% \\
+    VGG16 & 77.34\% & 8.59\% & 39.06\% & 0.00\% & 9.38\% \\
+    DenseNet121 & 82.81\% & 6.25\% & 36.72\% & 0.00\% & 13.28\% \\
+    MobileNetV2 & 78.91\% & 17.97\% & 38.28\% & 0.00\% & 11.72\% \\
     \hline
     \end{tabular}
     \caption{Dokładność klasyfikacji poszczególnych modeli przed i po zastosowaniu ataków adversarialnych}
     \label{tab:attack-results}
 \end{table}
 
-Analiza przedstawionych rezultatów ujawnia znaczące różnice w podatności badanych architektur. ResNet50 wykazuje najwyższą odporność na większość typów ataków, co może być związane z mechanizmem połączeń rezydualnych ułatwiającym gradientowy przepływ informacji. W przeciwieństwie do tego, architektura VGG16 okazuje się być najbardziej podatna, szczególnie w przypadku ataku FGSM, gdzie dokładność spada do zaledwie 8.6\%.
+Analiza przedstawionych rezultatów ujawnia znaczące różnice w podatności badanych architektur. ResNet50 wykazuje najwyższą odporność na większość typów ataków, co może być związane z mechanizmem połączeń rezydualnych ułatwiającym gradientowy przepływ informacji. W przeciwieństwie do tego, architektura VGG16 okazuje się być najbardziej podatna, szczególnie w przypadku ataku FGSM, gdzie dokładność spada do zaledwie 8.59\%.
 
 Szczególnie istotnym obserwacjom podlega uniwersalna skuteczność ataku C\&W, który powoduje niemal całkowitą degradację wydajności wszystkich testowanych modeli. Wynik ten potwierdza przewagę metod optymalizacyjnych nad jednokrokowymi atakami gradientowymi w kontekście znajdowania minimalnych perturbacji adversarialnych.
 
@@ -189,7 +211,9 @@ Ta obserwacja ma kluczowe znaczenie dla bezpieczeństwa systemów wizyjnych, pon
 
 Obrazy hiperspektralne charakteryzują się znacznie większą złożonością informacyjną w porównaniu do konwencjonalnych obrazów RGB, zawierając setki pasm spektralnych dla każdego piksela. Ta właściwość czyni je szczególnie wartościowymi w zastosowaniach takich jak teledetekcja, monitoring środowiskowy, czy analiza medyczna, ale jednocześnie stwarza nowe wyzwania w kontekście ataków adversarialnych.
 
-W niniejszym badaniu zastosowano architekturę HybridSN, specjalnie zaprojektowaną do klasyfikacji obrazów hiperspektralnych poprzez kombinację konwolucji 3D i 2D. Model ten wykorzystuje zarówno informacje przestrzenne jak i spektralne, co teoretycznie może wpływać na jego odporność względem perturbacji adversarialnych.
+W niniejszym badaniu zastosowano architekturę HybridSN \supercite{roy2019hybridsn}, specjalnie zaprojektowaną do klasyfikacji obrazów hiperspektralnych poprzez kombinację konwolucji 3D i 2D. Model ten wykorzystuje zarówno informacje przestrzenne jak i spektralne, co teoretycznie może wpływać na jego odporność względem perturbacji adversarialnych.
+
+W celu zapewnienia stabilności eksperymentów na danych hiperspektralnych, parametry ataków zostały skalibrowane na niższe wartości w porównaniu do eksperymentów na obrazach ImageNet: FGSM z $\epsilon = 0{,}01$, PGD z $\epsilon = 0{,}01$, $\alpha = 0{,}003$ i 1 iteracją, C\&W z parametrem $c = 100$, $\kappa = 0$, 20 iteracjami i learning rate $0{,}05$, oraz DeepFool z 1 iteracją i parametrem overshoot $0{,}01$. Mimo zastosowania słabszych parametrów ataków, model HybridSN wykazał znacznie większą podatność niż CNN testowane na ImageNet z silniejszymi parametrami.
 
 \begin{figure}[H]
     \centering
@@ -198,7 +222,15 @@ W niniejszym badaniu zastosowano architekturę HybridSN, specjalnie zaprojektowa
     \label{fig:hyperspectral-accuracy}
 \end{figure}
 
-Wyniki przedstawione na Rysunku \ref{fig:hyperspectral-accuracy} potwierdzają tendencje obserwowane w przypadku konwencjonalnych obrazów RGB. Atak C\&W ponownie okazuje się najskuteczniejszy, redukując dokładność klasyfikacji do najniższego poziomu. Jednocześnie, pozostałe ataki (FGSM, PGD, DeepFool) wykazują porównywalną skuteczność, choć na poziomie umożliwiającym nadal znaczące zakłócenia w procesie klasyfikacji.
+Wyniki przedstawione na Rysunku \ref{fig:hyperspectral-accuracy} ujawniają znaczące różnice w odporności modelu HybridSN na ataki adversarialne w porównaniu do konwencjonalnych architektur CNN. Wszystkie badane ataki degradują skuteczność HybridSN w większym stopniu niż jakąkolwiek z badanych architektur CNN, co stanowi istotną obserwację dla bezpieczeństwa systemów klasyfikacji hiperspektralnej.
+
+Ta zwiększona podatność HybridSN może wynikać z architekturalnych czynników:
+
+\begin{itemize}
+    \item \textbf{Prostota architektury} --- HybridSN wykorzystuje stosunkowo prostą kombinację warstw konwolucyjnych 3D i 2D bez zaawansowanych mechanizmów regularyzacyjnych obecnych w nowoczesnych CNN, takich jak połączenia rezydualne w ResNet50 czy normalizacja batch.
+    
+    \item \textbf{Mniejsza głębokość sieci} --- W porównaniu do głębokich architektur CNN (ResNet50: 50 warstw, DenseNet121: 121 warstw), HybridSN charakteryzuje się znacznie mniejszą liczbą warstw, co może ograniczać jego zdolność do uczenia się odpornych reprezentacji.
+\end{itemize}
 
 \begin{figure}[H]
     \centering
@@ -215,12 +247,12 @@ Analiza efektywności obliczeniowej (Rysunek \ref{fig:hyperspectral-time}) ujawn
     \caption{Porównanie magnitud perturbacji adversarialnych mierzonych normami $\ell_2$ i $\ell_\infty$}
 \end{figure}
 
-Analiza magnitud perturbacji została przeprowadzona z wykorzystaniem dwóch fundamentalnych norm:
+Analiza magnitud perturbacji została przeprowadzona w celu weryfikacji, czy parametry poszczególnych ataków zostały dobrane tak, aby siła generowanych zaburzeń była porównywalna, co jest warunkiem koniecznym dla rzetelnej oceny ich skuteczności. W analizie wykorzystano dwie fundamentalne normy:
 \begin{itemize}
-    \item norma L2 - mierzy całkowitą energię zaburzenia, czyli jego długość w przestrzeni euklidesowej. W praktyce oznacza to, że jeśli zaburzenie jest rozproszone równomiernie po wielu pikselach i pasmach spektralnych, ale o małej sile, to norma L2 będzie niska. Jest to często stosowane do oceny subtelnych, „gładkich” perturbacji.
-    \item norma L$\infty$ - mierzy maksymalną zmianę wartości w jednym pikselu. Określa więc, jak bardzo zaburzenie może zmienić dowolną pojedynczą wartość w obrazie. Tę normę stosuje się, gdy celem jest ograniczenie „najgorszego przypadku” zmiany, nawet jeśli cała reszta obrazu pozostaje praktycznie nietknięta.
+    \item norma $\ell_2$ - mierzy całkowitą energię zaburzenia, czyli jego długość w przestrzeni euklidesowej. W praktyce oznacza to, że jeśli zaburzenie jest rozproszone równomiernie po wielu pikselach i pasmach spektralnych, ale o małej sile, to norma $\ell_2$ będzie niska. Jest to często stosowane do oceny subtelnych, „gładkich” perturbacji.
+    \item norma $\ell_\infty$ - mierzy maksymalną zmianę wartości w jednym pikselu. Określa więc, jak bardzo zaburzenie może zmienić dowolną pojedynczą wartość w obrazie. Tę normę stosuje się, gdy celem jest ograniczenie „najgorszego przypadku” zmiany, nawet jeśli cała reszta obrazu pozostaje praktycznie nietknięta.
 \end{itemize}
-Wartości uzyskane są bardzo podobne, norma L2 dla C\&W jest trochę mniejsza, co może sugerować, że potrzebna była mniejsza czułość do skutecznego przeprowadzenia ataku. Uzyskane wyniki raczej pokazują odporność samego zbioru danych na ataki, niż skuteczność ich samą w sobie. Ogólnie więc możemy ten wykres interpretować tak, że potrzebne było dość duże zaburzenie globalne (norma L2) oraz że zmiana lokalna (maksymalna dla pojedynczego piksela) może być widoczna, jednak raczej dla obrazów o niższej rozdzielczości (L$\infty$).
+Wartości uzyskane są bardzo podobne, norma $\ell_2$ dla C\&W jest trochę mniejsza, co może sugerować, że potrzebna była mniejsza czułość do skutecznego przeprowadzenia ataku. Uzyskane wyniki raczej pokazują odporność samego zbioru danych na ataki, niż skuteczność ich samą w sobie. Ogólnie więc możemy ten wykres interpretować tak, że potrzebne było dość duże zaburzenie globalne (norma $\ell_2$) oraz że zmiana lokalna (maksymalna dla pojedynczego piksela) może być widoczna, jednak raczej dla obrazów o niższej rozdzielczości ($\ell_\infty$).
 
 \subsection{Wpływ kompresji JPEG na skuteczność ataków adversarialnych}
 
