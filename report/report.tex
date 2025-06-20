@@ -53,9 +53,8 @@
 \end{center}
 
 \begin{abstract}
-    Sieci konwolucyjne (CNN) zrewolucjonizowały przetwarzanie obrazów, jednak pozostają podatne na ataki adversarialne --- celowo wprowadzone subtelne zakłócenia w danych wejściowych, które wprowadzają błędy w przewidywaniach modeli. W niniejszej pracy eksperymentalnej przeanalizowano metody ataków adversarialnych na CNN, ich skutki oraz strategie obronne. Scharakteryzowano podstawowe techniki takie jak Fast Gradient Sign Method (FGSM), Projected Gradient Descent (PGD), ataki Carliniego-Wagnera oraz DeepFool, ze szczególnym uwzględnieniem ich podstaw matematycznych i skuteczności praktycznej. Przeprowadzono eksperymenty na podzbiorze danych walidacyjnych ImageNet oraz obrazach hiperspektralnych z wykorzystaniem pięciu architektur sieci konwolucyjnych (ResNet50, VGG16, DenseNet121, MobileNetV2, HybridSN). Omówiono mechanizmy obronne, w tym przetwarzanie wstępne danych poprzez kompresję JPEG, wskazując na ich skuteczność w mitigacji ataków adversarialnych. Wykazano uniwersalną podatność architektur CNN na ataki, przy czym ResNet50 wykazuje najwyższą odporność, a ataki Carlini \& Wagner okazują się najskuteczniejsze. Przeanalizowano także efekt kompresji JPEG jako naturalnego mechanizmu defensywnego. Wyniki wskazują na fundamentalne wyzwanie związane z równoważeniem dokładności i odporności modeli oraz konieczność rozwoju wielowarstwowych strategii ochronnych. Zaproponowano kierunki przyszłych badań obejmujące projektowanie inherentnie odpornych architektur oraz zaawansowane metody preprocessing'u defensywnego. Praca integruje perspektywę teoretyczną i praktyczną, oferując kompleksowy obraz wyzwań bezpieczeństwa w głębokich sieciach neuronowych.
+    Sieci konwolucyjne (CNN) zrewolucjonizowały przetwarzanie obrazów, jednak pozostają podatne na ataki adversarialne --- celowo wprowadzone subtelne zakłócenia w danych wejściowych, które wprowadzają błędy w przewidywaniach modeli. W niniejszej pracy eksperymentalnej przeanalizowano metody ataków adversarialnych na CNN, ich skutki oraz strategie obronne. Scharakteryzowano podstawowe techniki takie jak Fast Gradient Sign Method (FGSM), Projected Gradient Descent (PGD), ataki Carliniego-Wagnera oraz DeepFool, ze szczególnym uwzględnieniem ich podstaw matematycznych i skuteczności praktycznej. Przeprowadzono eksperymenty na podzbiorze danych walidacyjnych ImageNet oraz obrazach hiperspektralnych z wykorzystaniem pięciu architektur sieci konwolucyjnych (ResNet50, VGG16, DenseNet121, MobileNetV2, HybridSN). Dodatkowo, wykonano systematyczną analizę wpływu kluczowych parametrów każdej metody ataku na ich skuteczność, ujawniając nieliniowe zależności i optymalne konfiguracje parametrów. Omówiono mechanizmy obronne, w tym przetwarzanie wstępne danych poprzez kompresję JPEG, wskazując na ich skuteczność w mitigacji ataków adversarialnych. Wykazano uniwersalną podatność architektur CNN na ataki, przy czym ResNet50 wykazuje najwyższą odporność, a ataki Carlini \& Wagner okazują się najskuteczniejsze. Przeanalizowano także efekt kompresji JPEG jako naturalnego mechanizmu defensywnego. Wyniki wskazują na fundamentalne wyzwanie związane z równoważeniem dokładności i odporności modeli oraz konieczność rozwoju wielowarstwowych strategii ochronnych. Zaproponowano kierunki przyszłych badań obejmujące projektowanie inherentnie odpornych architektur oraz zaawansowane metody preprocessing'u defensywnego. Praca integruje perspektywę teoretyczną i praktyczną, oferując kompleksowy obraz wyzwań bezpieczeństwa w głębokich sieciach neuronowych.
 \end{abstract}
-
 
 \section{Wprowadzenie}
 
@@ -79,7 +78,11 @@ Analiza empiryczna obejmuje cztery reprezentatywne architektury CNN, charakteryz
     \item \textbf{MobileNetV2} --- efektywna obliczeniowo sieć przeznaczona na urządzenia mobilne
 \end{itemize}
 
-Eksperymenty przeprowadzono na reprezentatywnym podzbiorze zbioru walidacyjnego ImageNet, zawierającym 128 obrazów z różnych klas, co umożliwia kontrolowaną ocenę odporności modeli przy zachowaniu obliczeniowej wykonalności eksperymentów. Dodatkowo, w celu rozszerzenia zakresu analizy, zbadano także wpływ ataków na obrazy hiperspektralne z wykorzystaniem modelu HybridSN na zbiorze danych Indian Pines, oraz skuteczność kompresji JPEG jako metody defensywnej. Kod źródłowy implementacji oraz szczegółowe wyniki eksperymentów zostały udostępnione publicznie pod adresem: \url{https://github.com/f4rys/Cross-Domain-Adversarial-Analysis}
+Eksperymenty przeprowadzono na reprezentatywnym podzbiorze zbioru walidacyjnego ImageNet, zawierającym 128 obrazów z różnych klas, co umożliwia kontrolowaną ocenę odporności modeli przy zachowaniu obliczeniowej wykonalności eksperymentów. Dodatkowo, w celu rozszerzenia zakresu analizy, zbadano także wpływ ataków na obrazy hiperspektralne z wykorzystaniem modelu HybridSN na zbiorze danych Indian Pines, oraz skuteczność kompresji JPEG jako metody defensywnej. 
+
+Istotnym elementem badania jest przeprowadzona systematyczna analiza wpływu kluczowych parametrów każdej z metod ataków na ich skuteczność. Dla ataku FGSM przeanalizowano wpływ parametru epsilon, dla PGD zbadano interakcje między epsilon, alpha oraz liczbą kroków iteracyjnych, dla ataku Carlini \& Wagner oceniono wpływ współczynnika regularyzacji, learning rate i liczby kroków optymalizacji, natomiast dla DeepFool przebadano wpływ liczby kroków oraz parametru overshoot. Analiza ta ujawniła nieliniowe zależności między parametrami a skutecznością ataków oraz dostarczyła praktycznych wskazówek dotyczących optymalnej konfiguracji każdej metody.
+
+Kod źródłowy implementacji oraz szczegółowe wyniki eksperymentów zostały udostępnione pod adresem: \url{https://github.com/f4rys/Cross-Domain-Adversarial-Analysis}
 
 \section{Metodologia ataków adversarialnych}
 
@@ -165,14 +168,70 @@ Wszystkie modele CNN zostały wczytane jako przedtrenowane wersje z biblioteki t
 
 Wszystkie eksperymenty zostały przeprowadzone w środowisku PyTorch z wykorzystaniem GPU NVIDIA dla przyspieszenia obliczeń. Dla zapewnienia powtarzalności wyników, ziarno losowości zostało ustalone na stałą wartość. Każdy model był poddawany atakom w odrębnych sesjach w celu uniknięcia interferencji między eksperymentami.
 
-Parametry ataków zostały ustalone następująco: $\epsilon = 0.03$ dla ataków FGSM i PGD, liczba iteracji PGD = 1, rozmiar kroku $\alpha = 0.005$. Dla ataku C\&W wykorzystano parametr confidence $\kappa = 0$ oraz maksymalnie 5 iteracji optymalizacji oraz parametrem $c=5$. DeepFool był uruchamiany z maksymalnie 5 iteracjami oraz parametrem $overshoot=0.05$.
+\subsection{Analiza wpływu parametrów ataków adversarialnych}
+
+W celu głębszego zrozumienia mechanizmów działania ataków adversarialnych przeprowadzono systematyczną analizę wpływu kluczowych parametrów na skuteczność każdej z badanych metod. Eksperymenty zostały wykonane na architekturze ResNet50 z wykorzystaniem 128 obrazów z podzbioru ImageNet, co umożliwiło kontrolowaną ocenę zachowania ataków przy różnych konfiguracjach parametrów.
+
+\subsubsection{Analiza parametru epsilon w ataku FGSM}
+
+Parametr $\epsilon$ w metodzie FGSM kontroluje magnitudo perturbacji adversarialnej i bezpośrednio wpływa na siłę ataku. Przeprowadzono eksperymenty dla wartości w zakresie $\epsilon \in \{0.001, 0.01, 0.07, 0.1, 0.3, 0.5\}$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{fgsm_epsilon_impact.png}
+    \caption{Wpływ parametru epsilon na skuteczność ataku FGSM względem architektury ResNet50}
+    \label{fig:fgsm-epsilon}
+\end{figure}
+
+Analiza wyników (Rysunek \ref{fig:fgsm-epsilon}) ujawnia nieliniową zależność między wartością $\epsilon$ a skutecznością ataku. Dla małych wartości ($\epsilon = 0.001$) dokładność modelu pozostaje na wysokim poziomie (93.75\%), co wskazuje na niedostateczną siłę perturbacji. Istotna degradacja wydajności występuje dla $\epsilon \geq 0.01$, gdzie dokładność spada do około 80\%. Szczególnie interesujący jest plateau obserwowany dla wartości $\epsilon \in \{0.07, 0.1, 0.3\}$, gdzie dokładność ustabilizowała się na poziomie 75\%. Dalsze zwiększenie do $\epsilon = 0.5$ prowadzi do dodatkowej degradacji do 65.62\%.
+
+\subsubsection{Analiza parametrów ataku PGD}
+
+Metoda PGD charakteryzuje się trzema kluczowymi parametrami: epsilon ($\epsilon$), alpha ($\alpha$) oraz liczbą kroków iteracyjnych. Przeprowadzono systematyczną analizę dla kombinacji: $\epsilon \in \{0.001, 0.01, 0.07, 0.1\}$, $\alpha \in \{0.001, 0.01, 0.1\}$, oraz liczby kroków $\in \{10, 30\}$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{pgd_heatmap.png}
+    \caption{Analiza heatmap skuteczności ataku PGD w funkcji parametrów epsilon i alpha dla różnych liczb kroków}
+    \label{fig:pgd-heatmap}
+\end{figure}
+
+Analiza heatmap (Rysunek \ref{fig:pgd-heatmap}) dostarcza kompleksowego obrazu interakcji między parametrami PGD. Dla 10 kroków obserwuje się, że kombinacja wysokiego $\epsilon$ (0.07-0.1) z umiarkowanym $\alpha$ (0.01) prowadzi do najskuteczniejszych ataków. Zwiększenie liczby kroków do 30 wzmacnia tę tendencję, umożliwiając osiągnięcie zerowej dokładności dla szerszego zakresu kombinacji parametrów. Szczególnie widoczne jest, że zbyt wysokie wartości $\alpha$ (0.1) mogą paradoksalnie zmniejszać skuteczność ataku poprzez wprowadzenie niestabilności w procesie optymalizacji.
+
+\subsubsection{Analiza parametrów ataku Carlini \& Wagner}
+
+Atak C\&W charakteryzuje się kilkoma kluczowymi parametrami: współczynnikiem regularyzacji $c$, learning rate, liczbą kroków optymalizacji oraz parametrem confidence $\kappa$. Analiza została przeprowadzona dla $c \in \{0.1, 1, 10\}$, learning rate $\in \{0.001, 0.01, 0.1\}$, oraz liczby kroków $\in \{1, 2, 10\}$ przy stałym $\kappa = 0$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{cw_heatmap.png}
+    \caption{Analiza heatmap skuteczności ataku C\&W w funkcji parametrów C i learning rate dla różnych liczb kroków}
+    \label{fig:cw-heatmap}
+\end{figure}
+
+Heatmap C\&W (Rysunek \ref{fig:cw-heatmap}) ujawnia złożone interakcje między parametrami optymalizacji. Dla 1 kroku żadna z kombinacji parametrów nie jest skuteczna, co potwierdza potrzebę iteracyjnej optymalizacji w tej metodzie. Zwiększenie do 2 kroków znacząco poprawia skuteczność, szczególnie dla kombinacji średnich wartości $c$ i learning rate. Dalsze zwiększenie do 10 kroków prowadzi do osiągnięcia zerowej dokładności dla większości kombinacji parametrów, demonstrując potęgę tej metody przy odpowiedniej konfiguracji.
+
+\subsubsection{Analiza parametrów ataku DeepFool}
+
+Metoda DeepFool charakteryzuje się dwoma głównymi parametrami: liczbą kroków iteracyjnych oraz parametrem overshoot kontrolującym margines przekroczenia granicy decyzyjnej. Analiza została przeprowadzona dla liczby kroków $\in \{1, 2, 5, 10\}$ oraz overshoot $\in \{0.01, 0.1, 0.5\}$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{deepfool_heatmap.png}
+    \caption{Analiza heatmap skuteczności ataku DeepFool w funkcji liczby kroków i parametru overshoot}
+    \label{fig:deepfool-heatmap}
+\end{figure}
+
+Heatmap DeepFool (Rysunek \ref{fig:deepfool-heatmap}) ujawnia , że liczba kroków ma kluczowe znaczenie dla skuteczności ataku. Dla 1 kroku atak jest praktycznie nieskuteczny, co potwierdza potrzebę iteracyjnej natury tej metody. Zwiększenie liczby kroków do 2 lub 5 znacząco poprawia skuteczność, osiągając spadek dokładności. Większy overshoot (0.5) prowadzi do jeszcze większej degradacji wydajności, co sugeruje, że atak DeepFool jest wrażliwy na ten parametr.
 
 \subsection{Wyniki ataków na klasyfikację obrazów}
+
+Parametry ataków zostały ustalone następująco: $\epsilon = 0.03$ dla ataków FGSM i PGD, liczba iteracji PGD = 1, rozmiar kroku $\alpha = 0.005$. Dla ataku C\&W wykorzystano parametr confidence $\kappa = 0$ oraz maksymalnie 5 iteracji optymalizacji oraz parametrem $c=5$. DeepFool był uruchamiany z maksymalnie 5 iteracjami oraz parametrem $overshoot=0.05$.
 
 Ocena wpływu ataków adversarialnych została przeprowadzona poprzez pomiar dokładności klasyfikacji przed i po zastosowaniu perturbacji. Wyniki przedstawione na Rysunku \ref{fig:model-comparison} oraz w Tabeli \ref{tab:attack-results} ujawniają znaczące różnice w odporności poszczególnych architektur.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{model_comparison.png}
+    \includegraphics[width=0.9\textwidth]{model_comparison.png}
     \caption{Wpływ różnych ataków adversarialnych na dokładność klasyfikacji poszczególnych architektur CNN}
     \label{fig:model-comparison}
 \end{figure}
@@ -199,7 +258,7 @@ Szczególnie istotnym obserwacjom podlega uniwersalna skuteczność ataku C\&W, 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{adversarial_examples.png}
+    \includegraphics[width=0.9\textwidth]{adversarial_examples.png}
     \caption{Porównanie wizualnej percepcji oryginalnych obrazów i ich adversarialnych odpowiedników}
     \label{fig:adversarial-examples}
 \end{figure}
@@ -217,7 +276,7 @@ W celu zapewnienia stabilności eksperymentów na danych hiperspektralnych, para
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{hybridsn_accuracy.png} 
+    \includegraphics[width=0.9\textwidth]{hybridsn_accuracy.png} 
     \caption{Dokładność klasyfikacji obrazów hiperspektralnych po zastosowaniu różnych typów ataków adversarialnych}
     \label{fig:hyperspectral-accuracy}
 \end{figure}
@@ -234,7 +293,7 @@ Ta zwiększona podatność HybridSN może wynikać z architekturalnych czynnikó
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{hybridsn_time.png} 
+    \includegraphics[width=0.9\textwidth]{hybridsn_time.png} 
     \caption{Analiza czasowa wykonania ataków adversarialnych na dane hiperspektralne}
     \label{fig:hyperspectral-time}
 \end{figure}
@@ -243,7 +302,7 @@ Analiza efektywności obliczeniowej (Rysunek \ref{fig:hyperspectral-time}) ujawn
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{perturbations.png} 
+    \includegraphics[width=0.9\textwidth]{perturbations.png} 
     \caption{Porównanie magnitud perturbacji adversarialnych mierzonych normami $\ell_2$ i $\ell_\infty$}
 \end{figure}
 
@@ -258,7 +317,7 @@ Wartości uzyskane są bardzo podobne, norma $\ell_2$ dla C\&W jest trochę mnie
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{jpeg_accuracy.png}
+    \includegraphics[width=0.9\textwidth]{jpeg_accuracy.png}
     \caption{Wpływ kompresji JPEG na skuteczność ataków adversarialnych w architekturze ResNet50}
     \label{fig:jpeg-compression}
 \end{figure}
@@ -293,6 +352,8 @@ Z przedstawionych wyników wynika, że skuteczność ataków adversarialnych zna
     \item \textbf{Hiperspektralne ataki} wykazały podobne właściwości — ataki C\&W ponownie były najskuteczniejsze, co potwierdza ich uniwersalność. Natomiast czas ich wykonania oraz poziom wymaganych zaburzeń wskazują na kompromis pomiędzy skutecznością a kosztami obliczeniowymi.
     
     \item \textbf{Kompresja JPEG} okazuje się być interesującą metodą obrony — znacząco redukuje wpływ ataku, szczególnie dla C\&W, gdzie dokładność wzrosła z 3{,}1\% do około 80\%. Oznacza to, że nawet proste techniki przetwarzania obrazu mogą w pewnych przypadkach niwelować efekty perturbacji.
+    
+    \item \textbf{Analiza parametrów} ujawnia nieliniowe zależności między siłą ataków a ich parametrami. Dla FGSM i PGD obserwuje się efekt nasycenia przy wysokich wartościach $\epsilon$, podczas gdy ataki optymalizacyjne (C\&W, DeepFool) wykazują większą stabilność względem parametrów. Szczególnie istotne jest odkrycie, że zwiększenie liczby iteracji w PGD i C\&W prowadzi do dramatycznej poprawy skuteczności, co wskazuje na kluczową rolę czasu obliczeniowego w projektowaniu skutecznych ataków.
 \end{itemize}
 
 \section{Podsumowanie i wnioski}
@@ -352,7 +413,7 @@ Na podstawie przeprowadzonej analizy można wskazać następujące kierunki dals
     \item \textbf{Ataki adaptacyjne} --- badanie ataków dostosowanych do konkretnych mechanizmów defensywnych.
 \end{enumerate}
 
-Podsumowując, wyniki niniejszego badania podkreślają fundamentalne wyzwanie jakim są ataki adversarialne dla współczesnych systemów uczenia głębokiego. Skuteczna ochrona przed tego typu zagrożeniami wymaga wielowymiarowego podejścia łączącego zaawansowane architektury, metody treningu adversarialnego oraz preprocessing defensywny. Jednocześnie, ciągła ewolucja technik ataku wymaga stałego rozwoju i adaptacji mechanizmów obronnych.
+Podsumowując, wyniki niniejszego badania podkreślają fundamentalne wyzwanie jakim są ataki adversarialne dla współczesnych systemów uczenia głębokiego. Przeprowadzona analiza parametrów ujawnia kluczową rolę precyzyjnego dostrajania ataków dla maksymalizacji ich skuteczności przy zachowaniu subtelności wizualnej. Skuteczna ochrona przed tego typu zagrożeniami wymaga wielowymiarowego podejścia łączącego zaawansowane architektury, metody treningu adversarialnego oraz preprocessing defensywny. Jednocześnie, ciągła ewolucja technik ataku wymaga stałego rozwoju i adaptacji mechanizmów obronnych, ze szczególnym uwzględnieniem nieliniowych zależności między parametrami ataków a ich skutecznością.
 
 \printbibliography
 
